@@ -1,12 +1,38 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { TopHeader } from "@/components/TopHeader";
+import { BalanceCard } from "@/components/BalanceCard";
+import { ServiceGrid } from "@/components/ServiceGrid";
+import { ResellingSection } from "@/components/ResellingSection";
+import { InAdsSection } from "@/components/InAdsSection";
+import { BottomNavigation } from "@/components/BottomNavigation";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background pb-20 max-w-md mx-auto relative">
+      {/* Status bar simulation */}
+      <div className="flex items-center justify-between px-4 py-2 text-sm font-medium">
+        <span>9:27</span>
+        <div className="flex items-center gap-1">
+          <div className="flex gap-1">
+            <div className="w-1 h-3 bg-foreground rounded-full"></div>
+            <div className="w-1 h-3 bg-foreground rounded-full"></div>
+            <div className="w-1 h-3 bg-foreground rounded-full"></div>
+            <div className="w-1 h-3 bg-muted-foreground rounded-full"></div>
+          </div>
+          <span className="ml-2">📶</span>
+          <span>🔋</span>
+        </div>
       </div>
+
+      <TopHeader />
+      
+      <div className="px-4 space-y-6">
+        <BalanceCard balance={1000.0} />
+        <ServiceGrid />
+        <ResellingSection />
+        <InAdsSection />
+      </div>
+
+      <BottomNavigation />
     </div>
   );
 };
