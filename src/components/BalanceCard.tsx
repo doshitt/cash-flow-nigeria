@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AddMoneyModal } from "./AddMoneyModal";
 
 const currencies = [
   { code: "NGN", name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬", balance: 75000000 },
@@ -25,6 +26,7 @@ interface BalanceCardProps {
 export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
+  const [showAddMoney, setShowAddMoney] = useState(false);
 
   return (
     <Card className="gradient-primary text-primary-foreground p-6 card-shadow border-0">
@@ -78,9 +80,10 @@ export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => 
         <Button 
           variant="secondary" 
           className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
+          onClick={() => setShowAddMoney(true)}
         >
-          <span className="mr-2">💳</span>
-          Withdraw
+          <span className="mr-2">💰</span>
+          Add Money
         </Button>
         <Button 
           variant="secondary" 
@@ -90,6 +93,12 @@ export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => 
           Transfer
         </Button>
       </div>
+
+      <AddMoneyModal 
+        open={showAddMoney} 
+        onOpenChange={setShowAddMoney}
+        selectedCurrency={selectedCurrency.code}
+      />
     </Card>
   );
 };

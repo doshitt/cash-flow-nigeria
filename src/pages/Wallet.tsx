@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { AddMoneyModal } from "@/components/AddMoneyModal";
 
 const currencies = [
   { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸", balance: 50000 },
@@ -53,6 +54,7 @@ const transactions = [
 
 const Wallet = () => {
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
+  const [showAddMoney, setShowAddMoney] = useState(false);
 
   const formatBalance = (amount: number) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 0 });
@@ -143,6 +145,7 @@ const Wallet = () => {
           <Button 
             variant="secondary" 
             className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm"
+            onClick={() => setShowAddMoney(true)}
           >
             Add Money
           </Button>
@@ -188,6 +191,12 @@ const Wallet = () => {
           ))}
         </div>
       </div>
+
+      <AddMoneyModal 
+        open={showAddMoney} 
+        onOpenChange={setShowAddMoney}
+        selectedCurrency={selectedCurrency.code}
+      />
 
       <BottomNavigation />
     </div>
