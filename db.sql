@@ -1,5 +1,5 @@
--- FinPay Nigeria Fintech Database Schema
--- Created for fintech bank-to-bank transfers and international payments
+-- Tesa Pay Multi-Currency Fintech Database Schema
+-- Created for multi-currency wallets, bank-to-bank transfers and international payments
 
 -- Users table
 CREATE TABLE users (
