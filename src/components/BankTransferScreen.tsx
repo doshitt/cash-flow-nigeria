@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Copy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 interface BankTransferScreenProps {
   onBack: () => void;
@@ -9,35 +10,64 @@ interface BankTransferScreenProps {
 
 export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
   const { toast } = useToast();
+  const [accountDetails, setAccountDetails] = useState({
+    accountHolder: "Loading...",
+    accountNumber: "Loading...",
+    bankName: "Loading..."
+  });
+  const [loading, setLoading] = useState(true);
 
-  // In a real app, this would come from user's virtual account data
-  // For now using dynamic data that would be fetched from your backend
-  const accountDetails = {
-    accountHolder: "User Full Name", // This would be fetched from user profile
-    accountNumber: "Loading...", // This would be the Paystack virtual account number
-    bankName: "Wema Bank PLC" // This would be from Paystack virtual account response
+  // Function to create/get virtual account from Paystack
+  const createVirtualAccount = async () => {
+    try {
+      setLoading(true);
+      
+      // Replace with your actual backend URL
+      const response = await fetch('http://localhost/backend/create_virtual_account.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: 1, // Replace with actual user ID from your auth system
+          email: 'user@example.com', // Replace with actual user email
+          first_name: 'John', // Replace with actual user first name
+          last_name: 'Doe', // Replace with actual user last name
+          phone: '+2348123456789' // Replace with actual user phone
+        })
+      });
+
+      const data = await response.json();
+      console.log('Virtual account response:', data);
+
+      if (data.success) {
+        setAccountDetails({
+          accountHolder: data.data.account_name,
+          accountNumber: data.data.account_number,
+          bankName: data.data.bank_name
+        });
+        toast({
+          title: "Success",
+          description: "Virtual account details loaded successfully",
+        });
+      } else {
+        throw new Error(data.message || 'Failed to create virtual account');
+      }
+    } catch (error) {
+      console.error('Error creating virtual account:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load virtual account details",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // This function would make API call to create/get virtual account
-  const getVirtualAccount = async () => {
-    // Example API call structure:
-    /*
-    const response = await fetch('/api/create-virtual-account', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${userToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: userEmail,
-        first_name: userFirstName,
-        last_name: userLastName,
-        phone: userPhone
-      })
-    });
-    const data = await response.json();
-    */
-  };
+  useEffect(() => {
+    createVirtualAccount();
+  }, []);
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
