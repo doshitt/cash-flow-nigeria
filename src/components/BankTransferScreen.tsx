@@ -10,10 +10,33 @@ interface BankTransferScreenProps {
 export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
   const { toast } = useToast();
 
+  // In a real app, this would come from user's virtual account data
+  // For now using dynamic data that would be fetched from your backend
   const accountDetails = {
-    accountHolder: "Seun Hammed Muili",
-    accountNumber: "8543367532",
-    bankName: "Wema Bank PLC"
+    accountHolder: "User Full Name", // This would be fetched from user profile
+    accountNumber: "Loading...", // This would be the Paystack virtual account number
+    bankName: "Wema Bank PLC" // This would be from Paystack virtual account response
+  };
+
+  // This function would make API call to create/get virtual account
+  const getVirtualAccount = async () => {
+    // Example API call structure:
+    /*
+    const response = await fetch('/api/create-virtual-account', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: userEmail,
+        first_name: userFirstName,
+        last_name: userLastName,
+        phone: userPhone
+      })
+    });
+    const data = await response.json();
+    */
   };
 
   const copyToClipboard = (text: string, field: string) => {

@@ -57,6 +57,45 @@ CREATE TABLE user_bank_accounts (
     FOREIGN KEY (bank_id) REFERENCES banks(id)
 );
 
+-- Paystack dedicated virtual accounts
+CREATE TABLE virtual_accounts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    account_name VARCHAR(255) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    bank_name VARCHAR(255) NOT NULL,
+    bank_code VARCHAR(10) NOT NULL,
+    assignment_reason VARCHAR(100) DEFAULT 'deposit',
+    assigned BOOLEAN DEFAULT TRUE,
+    currency VARCHAR(3) DEFAULT 'NGN',
+    customer_id VARCHAR(100),
+    customer_code VARCHAR(100),
+    paystack_account_id VARCHAR(100),
+    active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Payment requests table (for crypto and other manual verifications)
+CREATE TABLE payment_requests (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    payment_method ENUM('crypto', 'bank_transfer', 'card') NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    crypto_type VARCHAR(10) DEFAULT NULL, -- USDT, BTC, etc
+    crypto_network VARCHAR(20) DEFAULT NULL, -- TRC20, ERC20, etc
+    transaction_hash VARCHAR(255) DEFAULT NULL,
+    wallet_address VARCHAR(255) DEFAULT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    admin_notes TEXT DEFAULT NULL,
+    proof_image VARCHAR(500) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Transactions table
 CREATE TABLE transactions (
     id INT PRIMARY KEY AUTO_INCREMENT,
