@@ -4,14 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { Card } from "@/components/ui/card";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 
 const currencies = [
-  { code: "USD", name: "US Dollar", symbol: "$" },
-  { code: "NGN", name: "Nigerian Naira", symbol: "₦" },
-  { code: "GBP", name: "British Pound", symbol: "£" },
-  { code: "EUR", name: "Euro", symbol: "€" },
-  { code: "GHS", name: "Ghanaian Cedi", symbol: "₵" }
+  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸", balance: 50000 },
+  { code: "NGN", name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬", balance: 75000000 },
+  { code: "GBP", name: "British Pound", symbol: "£", flag: "🇬🇧", balance: 35000 },
+  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺", balance: 42000 },
+  { code: "GHS", name: "Ghanaian Cedi", symbol: "₵", flag: "🇬🇭", balance: 125000 }
 ];
 
 const transactions = [
@@ -88,18 +94,38 @@ const Wallet = () => {
         </div>
 
         {/* Currency Selector */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="flex items-center gap-1 text-white/90">
-            <span className="text-sm">🇺🇸</span>
-            <span className="text-sm font-medium">{selectedCurrency.name}</span>
-            <ChevronDown size={16} />
-          </div>
+        <div className="flex items-center justify-center mb-6">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10">
+                <span className="text-sm">{selectedCurrency.flag}</span>
+                <span className="text-sm font-medium">{selectedCurrency.name}</span>
+                <ChevronDown size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-white border border-gray-200 shadow-lg z-50">
+              {currencies.map((currency) => (
+                <DropdownMenuItem
+                  key={currency.code}
+                  onClick={() => setSelectedCurrency(currency)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                >
+                  <span className="text-lg">{currency.flag}</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{currency.name}</div>
+                    <div className="text-xs text-gray-500">{currency.symbol}{currency.balance.toLocaleString()}</div>
+                  </div>
+                  <span className="text-xs text-gray-400">{currency.code}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Balance Display */}
         <div className="text-center mb-8">
           <div className="text-4xl font-bold mb-2">
-            {selectedCurrency.symbol}{formatBalance(50000)}
+            {selectedCurrency.symbol}{formatBalance(selectedCurrency.balance)}
           </div>
           <div className="text-white/80 text-sm">
             Available Balance

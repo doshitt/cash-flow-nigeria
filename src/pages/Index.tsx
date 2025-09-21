@@ -26,7 +26,7 @@ const Index = () => {
       <TopHeader />
       
       <div className="px-4 space-y-6">
-        <BalanceCard balance={1000.0} />
+        <BalanceCard />
         <ServiceGrid />
         <ResellingSection />
         <InAdsSection />
