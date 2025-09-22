@@ -1,0 +1,31 @@
+// API Configuration for TesaPay
+export const API_CONFIG = {
+  // Backend base URL - change this when deploying to production
+  BACKEND_BASE_URL: 'http://localhost/backend',
+  
+  // API endpoints
+  ENDPOINTS: {
+    CREATE_VIRTUAL_ACCOUNT: '/create_virtual_account.php',
+    PAYMENT_REQUESTS: '/payment_requests.php',
+    WEBHOOK_HANDLER: '/webhook_handler.php',
+  },
+  
+  // Request configuration
+  DEFAULT_HEADERS: {
+    'Content-Type': 'application/json',
+  },
+  
+  // Default user data for development
+  DEV_USER: {
+    user_id: 1,
+    email: 'user@tesapay.com',
+    first_name: 'John',
+    last_name: 'Doe',
+    phone: '+2348123456789'
+  }
+};
+
+// Helper function to build full API URLs
+export const getApiUrl = (endpoint: string): string => {
+  return `${API_CONFIG.BACKEND_BASE_URL}${endpoint}`;
+};

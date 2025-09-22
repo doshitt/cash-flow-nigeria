@@ -1,8 +1,9 @@
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Copy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { API_CONFIG, getApiUrl } from "@/config/api";
 
 interface BankTransferScreenProps {
   onBack: () => void;
@@ -22,19 +23,10 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
     try {
       setLoading(true);
       
-      // Replace with your actual backend URL
-      const response = await fetch('http://localhost/backend/create_virtual_account.php', {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.CREATE_VIRTUAL_ACCOUNT), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: 1, // Replace with actual user ID from your auth system
-          email: 'user@example.com', // Replace with actual user email
-          first_name: 'John', // Replace with actual user first name
-          last_name: 'Doe', // Replace with actual user last name
-          phone: '+2348123456789' // Replace with actual user phone
-        })
+        headers: API_CONFIG.DEFAULT_HEADERS,
+        body: JSON.stringify(API_CONFIG.DEV_USER)
       });
 
       const data = await response.json();
