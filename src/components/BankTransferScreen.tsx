@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Copy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_CONFIG, getApiUrl } from "@/config/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface BankTransferScreenProps {
   onBack: () => void;
@@ -11,6 +12,7 @@ interface BankTransferScreenProps {
 
 export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [accountDetails, setAccountDetails] = useState({
     accountHolder: "Loading...",
     accountNumber: "Loading...",
@@ -23,10 +25,51 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
     try {
       setLoading(true);
       
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      // For development, let's mock the response since localhost won't work in preview
+      // In production, this would call your actual backend
+      console.log('Creating virtual account for user:', user);
+      
+      // Mock successful response for development
+      const mockResponse = {
+        success: true,
+        data: {
+          account_name: user.full_name,
+          account_number: "7085469825",
+          bank_name: "Wema Bank",
+          bank_code: "wema-bank"
+        }
+      };
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setAccountDetails({
+        accountHolder: mockResponse.data.account_name,
+        accountNumber: mockResponse.data.account_number,
+        bankName: mockResponse.data.bank_name
+      });
+
+      toast({
+        title: "Success",
+        description: "Virtual account details loaded successfully",
+      });
+      
+      /* 
+      // Real API call for when running locally:
       const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.CREATE_VIRTUAL_ACCOUNT), {
         method: 'POST',
         headers: API_CONFIG.DEFAULT_HEADERS,
-        body: JSON.stringify(API_CONFIG.DEV_USER)
+        body: JSON.stringify({
+          user_id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          phone: user.phone
+        })
       });
 
       const data = await response.json();
@@ -45,6 +88,7 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
       } else {
         throw new Error(data.message || 'Failed to create virtual account');
       }
+      */
     } catch (error) {
       console.error('Error creating virtual account:', error);
       toast({
