@@ -16,7 +16,7 @@ $password = "your_db_password";
 $dbname = "tesapay_db";
 
 // Paystack configuration
-$paystack_secret_key = "sk_test_49ae60bbf6d930670dcd16103e7bfdb6dd1573c7";
+$paystack_secret_key = getenv('PAYSTACK_SECRET_KEY') ?: "sk_test_49ae60bbf6d930670dcd16103e7bfdb6dd1573c7";
 
 try {
     $pdo = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
@@ -83,8 +83,9 @@ try {
     
     // Create dedicated virtual account
     $virtual_account_data = [
-        'customer' => $customer_code,
-        'preferred_bank' => 'wema-bank'
+        'customer' => $customer_code
+        // Optional: let Paystack assign the default supported test bank (e.g., Titan)
+        // 'preferred_bank' => 'titan-trust-bank'
     ];
     
     curl_setopt_array($curl, array(

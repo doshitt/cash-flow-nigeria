@@ -24,77 +24,74 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
   const createVirtualAccount = async () => {
     try {
       setLoading(true);
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      // For development, let's mock the response since localhost won't work in preview
-      // In production, this would call your actual backend
-      console.log('Creating virtual account for user:', user);
-      
-      // Mock successful response for development
-      const mockResponse = {
-        success: true,
-        data: {
-          account_name: user.full_name,
-          account_number: "7085469825",
-          bank_name: "Wema Bank",
-          bank_code: "wema-bank"
+
+      const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
+
+      const reqUser = user
+        ? {
+            user_id: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            phone: user.phone,
+            full_name: user.full_name,
+          }
+        : {
+            user_id: API_CONFIG.DEV_USER.user_id,
+            email: API_CONFIG.DEV_USER.email,
+            first_name: API_CONFIG.DEV_USER.first_name,
+            last_name: API_CONFIG.DEV_USER.last_name,
+            phone: API_CONFIG.DEV_USER.phone,
+            full_name: `${API_CONFIG.DEV_USER.first_name} ${API_CONFIG.DEV_USER.last_name}`,
+          };
+
+      if (isLocal) {
+        const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.CREATE_VIRTUAL_ACCOUNT), {
+          method: "POST",
+          headers: API_CONFIG.DEFAULT_HEADERS,
+          body: JSON.stringify({
+            user_id: reqUser.user_id,
+            email: reqUser.email,
+            first_name: reqUser.first_name,
+            last_name: reqUser.last_name,
+            phone: reqUser.phone,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setAccountDetails({
+            accountHolder: data.data.account_name,
+            accountNumber: data.data.account_number,
+            bankName: data.data.bank_name,
+          });
+          toast({
+            title: "Success",
+            description: "Virtual account details loaded successfully",
+          });
+        } else {
+          throw new Error(data.message || "Failed to create virtual account");
         }
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setAccountDetails({
-        accountHolder: mockResponse.data.account_name,
-        accountNumber: mockResponse.data.account_number,
-        bankName: mockResponse.data.bank_name
-      });
-
-      toast({
-        title: "Success",
-        description: "Virtual account details loaded successfully",
-      });
-      
-      /* 
-      // Real API call for when running locally:
-      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.CREATE_VIRTUAL_ACCOUNT), {
-        method: 'POST',
-        headers: API_CONFIG.DEFAULT_HEADERS,
-        body: JSON.stringify({
-          user_id: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          phone: user.phone
-        })
-      });
-
-      const data = await response.json();
-      console.log('Virtual account response:', data);
-
-      if (data.success) {
+      } else {
+        // Preview/hosted environment: show demo details (no real API calls allowed)
+        await new Promise((resolve) => setTimeout(resolve, 800));
         setAccountDetails({
-          accountHolder: data.data.account_name,
-          accountNumber: data.data.account_number,
-          bankName: data.data.bank_name
+          accountHolder: reqUser.full_name,
+          accountNumber: "9999999999",
+          bankName: "Titan Trust Bank",
         });
         toast({
-          title: "Success",
-          description: "Virtual account details loaded successfully",
+          title: "Demo mode",
+          description: "Run locally to use your PHP backend or provide a live HTTPS backend URL.",
         });
-      } else {
-        throw new Error(data.message || 'Failed to create virtual account');
       }
-      */
     } catch (error) {
-      console.error('Error creating virtual account:', error);
+      console.error("Error creating virtual account:", error);
       toast({
         title: "Error",
         description: "Failed to load virtual account details",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
