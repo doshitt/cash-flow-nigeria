@@ -1,14 +1,16 @@
 -- Tesa Pay Multi-Currency Fintech Database Schema
 -- Created for multi-currency wallets, bank-to-bank transfers and international payments
 
--- Users table
+-- Users table with phone/PIN authentication
 CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    pin VARCHAR(255) NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
+    gender ENUM('male', 'female', 'other') NOT NULL,
     date_of_birth DATE,
     bvn VARCHAR(11),
     nin VARCHAR(20),
@@ -16,6 +18,10 @@ CREATE TABLE users (
     is_verified BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
     kyc_level ENUM('tier1', 'tier2', 'tier3') DEFAULT 'tier1',
+    referral_code VARCHAR(20) UNIQUE,
+    referred_by VARCHAR(20) NULL,
+    biometric_enabled BOOLEAN DEFAULT FALSE,
+    biometric_data TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -286,8 +292,74 @@ CREATE INDEX idx_gift_vouchers_creator ON gift_vouchers(creator_user_id);
 CREATE INDEX idx_gift_vouchers_status ON gift_vouchers(status);
 CREATE INDEX idx_voucher_transactions_voucher_id ON voucher_transactions(voucher_id);
 
--- Add PIN field to users table
-ALTER TABLE users ADD COLUMN pin VARCHAR(255) NULL AFTER password_hash;
+-- User sessions table for session management (month-long sessions with inactivity timeout)
+CREATE TABLE user_sessions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    session_token VARCHAR(255) UNIQUE NOT NULL,
+    device_info JSON,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    login_method ENUM('phone_pin', 'biometric', 'password') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_session_token (session_token),
+    INDEX idx_user_sessions (user_id, is_active),
+    INDEX idx_last_activity (last_activity)
+);
+
+-- Paystack integration tables
+CREATE TABLE paystack_customers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    customer_code VARCHAR(100) UNIQUE NOT NULL,
+    customer_id VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_paystack (user_id)
+);
+
+-- Paystack transactions table
+CREATE TABLE paystack_transactions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    transaction_id INT,
+    paystack_reference VARCHAR(100) UNIQUE NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'NGN',
+    status ENUM('pending', 'success', 'failed', 'abandoned') NOT NULL,
+    gateway_response TEXT,
+    paid_at TIMESTAMP NULL,
+    channel VARCHAR(50),
+    authorization JSON,
+    customer_code VARCHAR(100),
+    fees DECIMAL(15,2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
+    INDEX idx_paystack_reference (paystack_reference),
+    INDEX idx_paystack_status (status)
+);
+
+-- Paystack webhooks log
+CREATE TABLE paystack_webhooks (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    event_type VARCHAR(100) NOT NULL,
+    paystack_reference VARCHAR(100),
+    payload JSON NOT NULL,
+    processed BOOLEAN DEFAULT FALSE,
+    processed_at TIMESTAMP NULL,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_webhook_event (event_type),
+    INDEX idx_webhook_processed (processed)
+);
 
 -- Notification settings table
 CREATE TABLE IF NOT EXISTS notification_settings (
@@ -447,6 +519,222 @@ CREATE TABLE IF NOT EXISTS push_notifications (
     FOREIGN KEY (created_by) REFERENCES admin_team(id) ON DELETE CASCADE
 );
 
--- Insert default admin user
+-- Real-time data tables and procedures
+-- Transaction limits table
+CREATE TABLE transaction_limits (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    daily_transfer_limit DECIMAL(15,2) DEFAULT 200000.00,
+    single_transaction_limit DECIMAL(15,2) DEFAULT 50000.00,
+    monthly_limit DECIMAL(15,2) DEFAULT 2000000.00,
+    kyc_level ENUM('tier1', 'tier2', 'tier3') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- User verification status table
+CREATE TABLE user_verification (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    bvn_verified BOOLEAN DEFAULT FALSE,
+    phone_verified BOOLEAN DEFAULT FALSE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    face_verified BOOLEAN DEFAULT FALSE,
+    id_document_verified BOOLEAN DEFAULT FALSE,
+    address_verified BOOLEAN DEFAULT FALSE,
+    verification_date TIMESTAMP NULL,
+    verified_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (verified_by) REFERENCES admin_team(id) ON DELETE SET NULL
+);
+
+-- Real-time analytics table
+CREATE TABLE analytics_data (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    metric_type ENUM('user_signup', 'transaction', 'login', 'deposit', 'withdrawal', 'transfer') NOT NULL,
+    value DECIMAL(15,2) DEFAULT 1,
+    currency VARCHAR(3) DEFAULT 'NGN',
+    user_id INT NULL,
+    transaction_id INT NULL,
+    metadata JSON,
+    date_recorded DATE NOT NULL,
+    hour_recorded TINYINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
+    INDEX idx_analytics_date (date_recorded, hour_recorded),
+    INDEX idx_analytics_type (metric_type),
+    INDEX idx_analytics_user (user_id)
+);
+
+-- Savings targets table
+CREATE TABLE savings_targets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    target_name VARCHAR(255) NOT NULL,
+    target_amount DECIMAL(15,2) NOT NULL,
+    current_amount DECIMAL(15,2) DEFAULT 0.00,
+    currency VARCHAR(3) DEFAULT 'NGN',
+    target_date DATE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Savings transactions table
+CREATE TABLE savings_transactions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    savings_target_id INT NOT NULL,
+    user_id INT NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    transaction_type ENUM('deposit', 'withdrawal') NOT NULL,
+    transaction_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (savings_target_id) REFERENCES savings_targets(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
+);
+
+-- Device tokens for push notifications
+CREATE TABLE device_tokens (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    device_id VARCHAR(255) NOT NULL,
+    token VARCHAR(500) NOT NULL,
+    platform ENUM('ios', 'android', 'web') NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_device (user_id, device_id)
+);
+
+-- Create triggers for real-time analytics
+DELIMITER $$
+
+CREATE TRIGGER after_user_insert 
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    INSERT INTO analytics_data (metric_type, user_id, date_recorded, hour_recorded)
+    VALUES ('user_signup', NEW.id, CURDATE(), HOUR(NOW()));
+END$$
+
+CREATE TRIGGER after_transaction_insert 
+AFTER INSERT ON transactions
+FOR EACH ROW
+BEGIN
+    INSERT INTO analytics_data (metric_type, value, currency, user_id, transaction_id, date_recorded, hour_recorded)
+    VALUES (NEW.transaction_type, NEW.amount, NEW.currency, NEW.user_id, NEW.id, CURDATE(), HOUR(NOW()));
+END$$
+
+CREATE TRIGGER after_session_insert 
+AFTER INSERT ON user_sessions
+FOR EACH ROW
+BEGIN
+    INSERT INTO analytics_data (metric_type, user_id, date_recorded, hour_recorded)
+    VALUES ('login', NEW.user_id, CURDATE(), HOUR(NOW()));
+END$$
+
+DELIMITER ;
+
+-- Create views for dashboard analytics
+CREATE VIEW daily_stats AS
+SELECT 
+    date_recorded,
+    SUM(CASE WHEN metric_type = 'user_signup' THEN value ELSE 0 END) as new_users,
+    SUM(CASE WHEN metric_type = 'transaction' THEN value ELSE 0 END) as total_transactions,
+    SUM(CASE WHEN metric_type = 'deposit' THEN value ELSE 0 END) as total_deposits,
+    SUM(CASE WHEN metric_type = 'withdrawal' THEN value ELSE 0 END) as total_withdrawals,
+    SUM(CASE WHEN metric_type = 'transfer' THEN value ELSE 0 END) as total_transfers,
+    COUNT(DISTINCT user_id) as active_users
+FROM analytics_data 
+GROUP BY date_recorded;
+
+CREATE VIEW user_wallet_balances AS
+SELECT 
+    u.id as user_id,
+    u.first_name,
+    u.last_name,
+    u.phone,
+    u.email,
+    SUM(CASE WHEN w.currency = 'NGN' THEN w.balance ELSE 0 END) as ngn_balance,
+    SUM(CASE WHEN w.currency = 'USD' THEN w.balance ELSE 0 END) as usd_balance,
+    SUM(CASE WHEN w.currency = 'GBP' THEN w.balance ELSE 0 END) as gbp_balance,
+    SUM(CASE WHEN w.currency = 'EUR' THEN w.balance ELSE 0 END) as eur_balance
+FROM users u
+LEFT JOIN wallets w ON u.id = w.user_id AND w.is_active = TRUE
+WHERE u.is_active = TRUE
+GROUP BY u.id;
+
+-- Insert default admin user (use bcrypt for password: 'admin123')
 INSERT INTO admin_team (email, password, first_name, last_name, role, permissions) VALUES
 ('admin@tesapay.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Super', 'Admin', 'super_admin', '["all"]');
+
+-- Insert default exchange rates (remove and update with real-time API)
+DELETE FROM exchange_rates;
+INSERT INTO admin_exchange_rates (from_currency, to_currency, rate, fee_percentage, status) VALUES
+('NGN', 'USD', 0.0013, 2.5, 'active'),
+('NGN', 'GBP', 0.0010, 2.5, 'active'),
+('NGN', 'EUR', 0.0012, 2.5, 'active'),
+('USD', 'NGN', 770.00, 2.5, 'active'),
+('GBP', 'NGN', 950.00, 2.5, 'active'),
+('EUR', 'NGN', 850.00, 2.5, 'active');
+
+-- Create stored procedures for common operations
+DELIMITER $$
+
+CREATE PROCEDURE CreateUserSession(
+    IN p_user_id INT,
+    IN p_session_token VARCHAR(255),
+    IN p_device_info JSON,
+    IN p_ip_address VARCHAR(45),
+    IN p_user_agent TEXT,
+    IN p_login_method ENUM('phone_pin', 'biometric', 'password')
+)
+BEGIN
+    DECLARE session_duration INT DEFAULT 2592000; -- 30 days in seconds
+    
+    -- Deactivate old sessions
+    UPDATE user_sessions 
+    SET is_active = FALSE 
+    WHERE user_id = p_user_id AND is_active = TRUE;
+    
+    -- Create new session
+    INSERT INTO user_sessions (
+        user_id, 
+        session_token, 
+        device_info, 
+        ip_address, 
+        user_agent, 
+        login_method,
+        expires_at
+    ) VALUES (
+        p_user_id, 
+        p_session_token, 
+        p_device_info, 
+        p_ip_address, 
+        p_user_agent, 
+        p_login_method,
+        DATE_ADD(NOW(), INTERVAL session_duration SECOND)
+    );
+END$$
+
+CREATE PROCEDURE CleanupInactiveSessions()
+BEGIN
+    -- Mark sessions as inactive if no activity for 7 days
+    UPDATE user_sessions 
+    SET is_active = FALSE 
+    WHERE last_activity < DATE_SUB(NOW(), INTERVAL 7 DAY) 
+    AND is_active = TRUE;
+    
+    -- Delete expired sessions
+    DELETE FROM user_sessions 
+    WHERE expires_at < NOW();
+END$$
+
+DELIMITER ;
