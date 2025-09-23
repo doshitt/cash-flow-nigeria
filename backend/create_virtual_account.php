@@ -15,8 +15,8 @@ $username = "your_db_username";
 $password = "your_db_password";
 $dbname = "tesapay_db";
 
-// Paystack configuration
-$paystack_secret_key = getenv('PAYSTACK_SECRET_KEY') ?: "sk_test_49ae60bbf6d930670dcd16103e7bfdb6dd1573c7";
+// Paystack configuration - LIVE CREDENTIALS
+$paystack_secret_key = getenv('PAYSTACK_SECRET_KEY') ?: "sk_live_128d95f72de1514878e1814d7f3b646095a56b62";
 
 try {
     $pdo = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
