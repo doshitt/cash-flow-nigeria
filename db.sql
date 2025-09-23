@@ -324,6 +324,22 @@ CREATE TABLE paystack_customers (
     UNIQUE KEY unique_user_paystack (user_id)
 );
 
+-- Dedicated virtual accounts table
+CREATE TABLE dedicated_accounts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    customer_code VARCHAR(50) NOT NULL,
+    account_name VARCHAR(255) NOT NULL,
+    account_number VARCHAR(20) UNIQUE NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    bank_code VARCHAR(20) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'NGN',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Paystack transactions table
 CREATE TABLE paystack_transactions (
     id INT PRIMARY KEY AUTO_INCREMENT,

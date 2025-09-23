@@ -1,10 +1,8 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
-
+require_once '../config/cors.php';
 require_once '../config/database.php';
+
+header('Content-Type: application/json');
 
 try {
     $pdo = new PDO($dsn, $username, $password, $options);
@@ -134,8 +132,41 @@ try {
         ");
         $stmt->execute([$userId, $phone, $otp, $otpExpiry]);
         
-        // TODO: Send OTP via SMS (integrate with SMS provider)
-        // For now, we'll just return it in response for testing
+        // Create Paystack customer and dedicated virtual account
+        try {
+            $paystackCustomer = createPaystackCustomer($firstName, $surname, $email, $phone);
+            if ($paystackCustomer['status']) {
+                $customerCode = $paystackCustomer['data']['customer_code'];
+                $customerId = $paystackCustomer['data']['id'];
+                
+                // Save Paystack customer
+                $stmt = $pdo->prepare("
+                    INSERT INTO paystack_customers (user_id, customer_code, customer_id, email) 
+                    VALUES (?, ?, ?, ?)
+                ");
+                $stmt->execute([$userId, $customerCode, $customerId, $email]);
+                
+                // Create dedicated virtual account
+                $virtualAccount = createDedicatedVirtualAccount($customerCode, $firstName, $surname, $phone);
+                if ($virtualAccount['status']) {
+                    $accountData = $virtualAccount['data'];
+                    $stmt = $pdo->prepare("
+                        INSERT INTO dedicated_accounts (
+                            user_id, customer_code, account_name, account_number, 
+                            bank_name, bank_code, currency, is_active
+                        ) VALUES (?, ?, ?, ?, ?, ?, 'NGN', 1)
+                    ");
+                    $stmt->execute([
+                        $userId, $customerCode, $accountData['account_name'],
+                        $accountData['account_number'], $accountData['bank']['name'],
+                        $accountData['bank']['slug']
+                    ]);
+                }
+            }
+        } catch (Exception $e) {
+            // Continue with registration even if Paystack fails
+            error_log("Paystack customer creation failed: " . $e->getMessage());
+        }
         
         $pdo->commit();
         
@@ -157,5 +188,74 @@ try {
         'success' => false,
         'message' => $e->getMessage()
     ]);
+}
+
+function createPaystackCustomer($firstName, $lastName, $email, $phone) {
+    $paystackSecretKey = 'sk_live_128d95f72de1514878e1814d7f3b646095a56b62';
+    
+    $customerData = [
+        'email' => $email,
+        'first_name' => $firstName,
+        'last_name' => $lastName,
+        'phone' => $phone
+    ];
+    
+    $curl = curl_init();
+    
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => "https://api.paystack.co/customer",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => json_encode($customerData),
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer " . $paystackSecretKey,
+            "Content-Type: application/json",
+        ],
+    ));
+    
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+    curl_close($curl);
+    
+    if ($err) {
+        throw new Exception("cURL Error: " . $err);
+    }
+    
+    return json_decode($response, true);
+}
+
+function createDedicatedVirtualAccount($customerCode, $firstName, $lastName, $phone) {
+    $paystackSecretKey = 'sk_live_128d95f72de1514878e1814d7f3b646095a56b62';
+    
+    $accountData = [
+        'customer' => $customerCode,
+        'preferred_bank' => 'wema-bank',
+        'first_name' => $firstName,
+        'last_name' => $lastName,
+        'phone' => $phone
+    ];
+    
+    $curl = curl_init();
+    
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => "https://api.paystack.co/dedicated_account",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS => json_encode($accountData),
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer " . $paystackSecretKey,
+            "Content-Type: application/json",
+        ],
+    ));
+    
+    $response = curl_exec($curl);
+    $err = curl_error($curl);
+    curl_close($curl);
+    
+    if ($err) {
+        throw new Exception("cURL Error: " . $err);
+    }
+    
+    return json_decode($response, true);
 }
 ?>

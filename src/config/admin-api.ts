@@ -1,7 +1,7 @@
 // API Configuration for DoshiTT Admin Dashboard
 export const ADMIN_API_CONFIG = {
   // Backend base URL - change this when deploying to production
-  BACKEND_BASE_URL: 'http://localhost/backend/admin',
+  BACKEND_BASE_URL: 'http://localhost:8080/backend/admin',
   
   // API endpoints
   ENDPOINTS: {

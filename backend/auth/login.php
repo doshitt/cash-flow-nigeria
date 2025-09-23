@@ -1,10 +1,8 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
-
+require_once '../config/cors.php';
 require_once '../config/database.php';
+
+header('Content-Type: application/json');
 
 try {
     $pdo = new PDO($dsn, $username, $password, $options);

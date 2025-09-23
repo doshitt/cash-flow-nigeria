@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!tokenToCheck) return false;
 
     try {
-      const response = await fetch('http://localhost/backend/auth/session_check.php', {
+      const response = await fetch('http://localhost:8080/backend/auth/session_check.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
