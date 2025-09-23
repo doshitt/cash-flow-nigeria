@@ -61,29 +61,27 @@ const App = () => (
           <Route path="/cards-and-banks" element={<CardsAndBanks />} />
           
           {/* Admin Dashboard Routes */}
-          <Route path="/admin/*" element={
+          <Route path="/admin" element={
             <SidebarProvider>
               <div className="min-h-screen flex w-full">
-                <Routes>
-                  <Route path="/" element={<AdminLayout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="transactions" element={<AdminTransactions />} />
-                    <Route path="customers" element={<AdminCustomers />} />
-                    <Route path="disputes" element={<AdminDisputes />} />
-                    <Route path="refunds" element={<AdminRefunds />} />
-                    <Route path="payment-requests" element={<AdminPaymentRequests />} />
-                    <Route path="coupons" element={<AdminCoupons />} />
-                    <Route path="exchange-rate" element={<AdminExchangeRate />} />
-                    <Route path="referrals" element={<AdminReferrals />} />
-                    <Route path="cards" element={<AdminCards />} />
-                    <Route path="notifications" element={<AdminNotifications />} />
-                    <Route path="banner-ads" element={<AdminBannerAds />} />
-                    <Route path="team" element={<AdminTeam />} />
-                  </Route>
-                </Routes>
+                <AdminLayout />
               </div>
             </SidebarProvider>
-          } />
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="transactions" element={<AdminTransactions />} />
+            <Route path="customers" element={<AdminCustomers />} />
+            <Route path="disputes" element={<AdminDisputes />} />
+            <Route path="refunds" element={<AdminRefunds />} />
+            <Route path="payment-requests" element={<AdminPaymentRequests />} />
+            <Route path="coupons" element={<AdminCoupons />} />
+            <Route path="exchange-rate" element={<AdminExchangeRate />} />
+            <Route path="referrals" element={<AdminReferrals />} />
+            <Route path="cards" element={<AdminCards />} />
+            <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="banner-ads" element={<AdminBannerAds />} />
+            <Route path="team" element={<AdminTeam />} />
+          </Route>
           
           {/* Catch-all route - MUST be last */}
           <Route path="*" element={<NotFound />} />

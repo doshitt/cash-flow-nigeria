@@ -28,19 +28,19 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Transactions", url: "/transactions", icon: ArrowLeftRight },
-  { title: "Customers", url: "/customers", icon: Users },
-  { title: "Disputes", url: "/disputes", icon: MessageSquare },
-  { title: "Refunds", url: "/refunds", icon: RefreshCw },
-  { title: "Payment Requests", url: "/payment-requests", icon: FileText },
-  { title: "Coupons", url: "/coupons", icon: Gift },
-  { title: "Exchange Rate", url: "/exchange-rate", icon: TrendingUp },
-  { title: "Referrals", url: "/referrals", icon: BarChart3 },
-  { title: "Cards", url: "/cards", icon: CreditCard },
-  { title: "Notifications", url: "/notifications", icon: Bell },
-  { title: "Banner Ads", url: "/banner-ads", icon: Image },
-  { title: "Team", url: "/team", icon: UserCog },
+  { title: "Dashboard", url: "/admin", icon: Home },
+  { title: "Transactions", url: "/admin/transactions", icon: ArrowLeftRight },
+  { title: "Customers", url: "/admin/customers", icon: Users },
+  { title: "Disputes", url: "/admin/disputes", icon: MessageSquare },
+  { title: "Refunds", url: "/admin/refunds", icon: RefreshCw },
+  { title: "Payment Requests", url: "/admin/payment-requests", icon: FileText },
+  { title: "Coupons", url: "/admin/coupons", icon: Gift },
+  { title: "Exchange Rate", url: "/admin/exchange-rate", icon: TrendingUp },
+  { title: "Referrals", url: "/admin/referrals", icon: BarChart3 },
+  { title: "Cards", url: "/admin/cards", icon: CreditCard },
+  { title: "Notifications", url: "/admin/notifications", icon: Bell },
+  { title: "Banner Ads", url: "/admin/banner-ads", icon: Image },
+  { title: "Team", url: "/admin/team", icon: UserCog },
 ];
 
 export function AdminSidebar() {
@@ -49,7 +49,7 @@ export function AdminSidebar() {
   const currentPath = location.pathname;
 
   const isActive = (path: string) => {
-    if (path === "/") return currentPath === "/";
+    if (path === "/admin") return currentPath === "/admin";
     return currentPath.startsWith(path);
   };
 
