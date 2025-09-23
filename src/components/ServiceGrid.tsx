@@ -1,9 +1,11 @@
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 interface ServiceItem {
   icon: string;
   label: string;
   href?: string;
+  onClick?: () => void;
 }
 
 const services: ServiceItem[] = [
@@ -18,8 +20,11 @@ const services: ServiceItem[] = [
   { icon: "➕", label: "More" }
 ];
 
-const ServiceCard = ({ icon, label }: ServiceItem) => (
-  <Card className="p-4 card-shadow border-0 hover:shadow-lg transition-shadow cursor-pointer bg-card">
+const ServiceCard = ({ icon, label, onClick }: ServiceItem) => (
+  <Card 
+    className="p-4 card-shadow border-0 hover:shadow-lg transition-shadow cursor-pointer bg-card"
+    onClick={onClick}
+  >
     <div className="flex flex-col items-center gap-2 text-center">
       <span className="text-2xl">{icon}</span>
       <span className="text-xs font-medium text-card-foreground leading-tight">
@@ -30,10 +35,23 @@ const ServiceCard = ({ icon, label }: ServiceItem) => (
 );
 
 export const ServiceGrid = () => {
+  const navigate = useNavigate();
+
+  const handleServiceClick = (service: ServiceItem) => {
+    if (service.label === "Airtime") {
+      navigate("/airtime");
+    }
+    // Add more service navigation here as needed
+  };
+
   return (
     <div className="grid grid-cols-3 gap-3">
       {services.map((service, index) => (
-        <ServiceCard key={index} {...service} />
+        <ServiceCard 
+          key={index} 
+          {...service} 
+          onClick={() => handleServiceClick(service)}
+        />
       ))}
     </div>
   );
