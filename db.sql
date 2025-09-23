@@ -180,7 +180,41 @@ CREATE TABLE referrals (
     FOREIGN KEY (referred_id) REFERENCES users(id)
 );
 
--- Coupons table
+-- Gift Vouchers/Coupons table
+CREATE TABLE gift_vouchers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    creator_user_id INT NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    status ENUM('active', 'redeemed', 'expired') DEFAULT 'active',
+    redeemed_by_user_id INT NULL,
+    redeemed_amount DECIMAL(15,2) NULL,
+    platform_fee DECIMAL(15,2) NULL,
+    redeemed_at TIMESTAMP NULL,
+    expires_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (creator_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (redeemed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Voucher transactions (for tracking creation and redemption)
+CREATE TABLE voucher_transactions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    voucher_id INT NOT NULL,
+    user_id INT NOT NULL,
+    transaction_type ENUM('created', 'redeemed') NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    transaction_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (voucher_id) REFERENCES gift_vouchers(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL
+);
+
+-- Coupons table (keeping original for discount coupons)
 CREATE TABLE coupons (
     id INT PRIMARY KEY AUTO_INCREMENT,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -245,3 +279,7 @@ CREATE INDEX idx_wallets_user_id ON wallets(user_id);
 CREATE INDEX idx_user_bank_accounts_user_id ON user_bank_accounts(user_id);
 CREATE INDEX idx_otps_phone ON otps(phone);
 CREATE INDEX idx_otps_email ON otps(email);
+CREATE INDEX idx_gift_vouchers_code ON gift_vouchers(code);
+CREATE INDEX idx_gift_vouchers_creator ON gift_vouchers(creator_user_id);
+CREATE INDEX idx_gift_vouchers_status ON gift_vouchers(status);
+CREATE INDEX idx_voucher_transactions_voucher_id ON voucher_transactions(voucher_id);

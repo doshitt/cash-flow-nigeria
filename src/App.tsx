@@ -8,6 +8,7 @@ import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
 import Savings from "./pages/Savings";
 import Airtime from "./pages/Airtime";
+import { Vouchers } from "./pages/Vouchers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/savings" element={<Savings />} />
           <Route path="/airtime" element={<Airtime />} />
+          <Route path="/vouchers" element={<Vouchers />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

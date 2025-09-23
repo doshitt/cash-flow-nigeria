@@ -11,13 +11,12 @@ interface ServiceItem {
 const services: ServiceItem[] = [
   { icon: "💰", label: "Add Money" },
   { icon: "📄", label: "Recent Transactions" },
-  { icon: "⏰", label: "Airtime to cash" },
+  { icon: "🎁", label: "Gift Vouchers" },
   { icon: "📱", label: "Airtime" },
   { icon: "📶", label: "Data" },
   { icon: "💡", label: "Electricity" },
   { icon: "📊", label: "Betting" },
-  { icon: "📺", label: "TV" },
-  { icon: "➕", label: "More" }
+  { icon: "📺", label: "TV" }
 ];
 
 const ServiceCard = ({ icon, label, onClick }: ServiceItem) => (
@@ -40,6 +39,8 @@ export const ServiceGrid = () => {
   const handleServiceClick = (service: ServiceItem) => {
     if (service.label === "Airtime") {
       navigate("/airtime");
+    } else if (service.label === "Gift Vouchers") {
+      navigate("/vouchers");
     }
     // Add more service navigation here as needed
   };
