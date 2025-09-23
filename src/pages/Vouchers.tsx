@@ -49,7 +49,7 @@ export const Vouchers = () => {
   // Fetch user vouchers
   const fetchUserVouchers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/backend/gift_vouchers.php?action=user_vouchers&user_id=1');
+      const response = await fetch('/backend/gift_vouchers.php?action=user_vouchers&user_id=1');
       const data = await response.json();
       if (data.success) {
         setUserVouchers(data.vouchers);
@@ -101,7 +101,7 @@ export const Vouchers = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/backend/gift_vouchers.php?action=create', {
+      const response = await fetch('/backend/gift_vouchers.php?action=create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ export const Vouchers = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8080/backend/gift_vouchers.php?action=redeem', {
+      const response = await fetch('/backend/gift_vouchers.php?action=redeem', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

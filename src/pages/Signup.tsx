@@ -144,7 +144,7 @@ export const Signup = () => {
   const handleSignup = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/backend/auth/signup.php', {
+      const response = await fetch('/backend/auth/signup.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -30,7 +30,7 @@ export const Login = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/backend/auth/login.php', {
+      const response = await fetch('/backend/auth/login.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export const Login = () => {
 
       if (credential) {
         // Send credential to backend for verification
-        const response = await fetch('http://localhost:8080/backend/auth/biometric_login.php', {
+        const response = await fetch('/backend/auth/biometric_login.php', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
