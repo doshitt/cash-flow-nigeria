@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { getAdminApiUrl } from "@/config/admin-api";
+import { getAdminApiUrl, ADMIN_API_CONFIG } from "@/config/admin-api";
 
 interface DashboardStats {
   total_users: number;
