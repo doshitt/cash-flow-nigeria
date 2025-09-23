@@ -10,6 +10,7 @@ import Savings from "./pages/Savings";
 import Airtime from "./pages/Airtime";
 import { Vouchers } from "./pages/Vouchers";
 import ReferAndEarn from "./pages/ReferAndEarn";
+import RecentTransactions from "./pages/RecentTransactions";
 import Transfer from "./pages/Transfer";
 import TransactionLimits from "./pages/TransactionLimits";
 import ChangePassword from "./pages/ChangePassword";
@@ -33,7 +34,8 @@ const App = () => (
           <Route path="/savings" element={<Savings />} />
           <Route path="/airtime" element={<Airtime />} />
           <Route path="/vouchers" element={<Vouchers />} />
-          <Route path="/refer-and-earn" element={<ReferAndEarn />} />
+        <Route path="/refer-and-earn" element={<ReferAndEarn />} />
+        <Route path="/recent-transactions" element={<RecentTransactions />} />
           <Route path="/transfer" element={<Transfer />} />
           <Route path="/transaction-limits" element={<TransactionLimits />} />
           <Route path="/change-password" element={<ChangePassword />} />

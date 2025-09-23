@@ -2,6 +2,8 @@ import { Search, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AccountProfilePopup } from "./AccountProfilePopup";
+import { NotificationPopup } from "./NotificationPopup";
 
 export const TopHeader = () => {
   return (
@@ -14,15 +16,18 @@ export const TopHeader = () => {
         />
       </div>
       
-      <Button variant="ghost" size="sm" className="relative p-2">
-        <Bell size={20} className="text-foreground" />
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full"></div>
-      </Button>
+      <NotificationPopup>
+        <Button variant="ghost" size="sm" className="relative p-2">
+          <Bell size={20} className="text-foreground" />
+        </Button>
+      </NotificationPopup>
       
-      <Avatar className="w-8 h-8">
-        <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face" />
-        <AvatarFallback>JD</AvatarFallback>
-      </Avatar>
+      <AccountProfilePopup>
+        <Avatar className="w-8 h-8 cursor-pointer">
+          <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face" />
+          <AvatarFallback>JD</AvatarFallback>
+        </Avatar>
+      </AccountProfilePopup>
     </div>
   );
 };
