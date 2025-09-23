@@ -27,5 +27,7 @@ export const API_CONFIG = {
 
 // Helper function to build full API URLs
 export const getApiUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BACKEND_BASE_URL}${endpoint}`;
+  const runtimeBase = typeof window !== 'undefined' ? (localStorage.getItem('tesapay_backend_url') || '') : '';
+  const base = runtimeBase || API_CONFIG.BACKEND_BASE_URL;
+  return `${base}${endpoint}`;
 };

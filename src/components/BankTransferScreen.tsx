@@ -26,6 +26,8 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
       setLoading(true);
 
       const isLocal = typeof window !== "undefined" && window.location.hostname === "localhost";
+      const backendBase = API_CONFIG.BACKEND_BASE_URL;
+      const canCallBackend = isLocal || backendBase.startsWith("https://");
 
       const reqUser = user
         ? {
@@ -45,7 +47,7 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
             full_name: `${API_CONFIG.DEV_USER.first_name} ${API_CONFIG.DEV_USER.last_name}`,
           };
 
-      if (isLocal) {
+      if (canCallBackend) {
         const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.CREATE_VIRTUAL_ACCOUNT), {
           method: "POST",
           headers: API_CONFIG.DEFAULT_HEADERS,
@@ -67,23 +69,23 @@ export const BankTransferScreen = ({ onBack }: BankTransferScreenProps) => {
             bankName: data.data.bank_name,
           });
           toast({
-            title: "Success",
-            description: "Virtual account details loaded successfully",
+            title: "Virtual account ready",
+            description: `${data.data.bank_name} • ${data.data.account_number}`,
           });
         } else {
           throw new Error(data.message || "Failed to create virtual account");
         }
       } else {
-        // Preview/hosted environment: show demo details (no real API calls allowed)
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Fallback preview without HTTPS backend
+        await new Promise((resolve) => setTimeout(resolve, 600));
         setAccountDetails({
           accountHolder: reqUser.full_name,
           accountNumber: "9999999999",
           bankName: "Titan Trust Bank",
         });
         toast({
-          title: "Demo mode",
-          description: "Run locally to use your PHP backend or provide a live HTTPS backend URL.",
+          title: "Backend URL required",
+          description: "Set an HTTPS BACKEND_BASE_URL in src/config/api.ts or use localStorage 'tesapay_backend_url'",
         });
       }
     } catch (error) {
