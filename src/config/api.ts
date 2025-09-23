@@ -9,6 +9,7 @@ export const API_CONFIG = {
     PAYMENT_REQUESTS: '/payment_requests.php',
     WEBHOOK_HANDLER: '/webhook_handler.php',
     GIFT_VOUCHERS: '/gift_vouchers.php',
+    TRANSFERS: '/transfers.php',
   },
   
   // Request configuration
