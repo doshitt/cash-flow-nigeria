@@ -10,6 +10,11 @@ export const API_CONFIG = {
     WEBHOOK_HANDLER: '/webhook_handler.php',
     GIFT_VOUCHERS: '/gift_vouchers.php',
     TRANSFERS: '/transfers.php',
+    CHANGE_PASSWORD: '/change_password.php',
+    NOTIFICATION_SETTINGS: '/notification_settings.php',
+    VERIFY_PIN: '/verify_pin.php',
+    UPDATE_PIN: '/update_pin.php',
+    ADD_CARD: '/add_card.php',
   },
   
   // Request configuration

@@ -285,3 +285,48 @@ CREATE INDEX idx_gift_vouchers_code ON gift_vouchers(code);
 CREATE INDEX idx_gift_vouchers_creator ON gift_vouchers(creator_user_id);
 CREATE INDEX idx_gift_vouchers_status ON gift_vouchers(status);
 CREATE INDEX idx_voucher_transactions_voucher_id ON voucher_transactions(voucher_id);
+
+-- Add PIN field to users table
+ALTER TABLE users ADD COLUMN pin VARCHAR(255) NULL AFTER password_hash;
+
+-- Notification settings table
+CREATE TABLE IF NOT EXISTS notification_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    login_alert_email BOOLEAN DEFAULT TRUE,
+    transaction_alert_email BOOLEAN DEFAULT TRUE,
+    transaction_alert_sms BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE KEY unique_user_settings (user_id)
+);
+
+-- User cards table
+CREATE TABLE IF NOT EXISTS user_cards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    card_number_encrypted TEXT NOT NULL,
+    last_four_digits CHAR(4) NOT NULL,
+    expiry_date VARCHAR(7) NOT NULL,
+    cvv_encrypted TEXT NOT NULL,
+    pin_encrypted TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- User activities table for audit logging
+CREATE TABLE IF NOT EXISTS user_activities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    activity_type VARCHAR(50) NOT NULL,
+    description TEXT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_user_activity (user_id, activity_type),
+    INDEX idx_created_at (created_at)
+);

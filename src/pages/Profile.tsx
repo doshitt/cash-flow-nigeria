@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { useNavigate } from "react-router-dom";
 
 const profileSections = [
   {
@@ -39,6 +40,33 @@ const profileSections = [
 ];
 
 const Profile = () => {
+  const navigate = useNavigate();
+
+  const handleNavigateToSection = (label: string) => {
+    switch (label) {
+      case "Transaction Limits":
+        navigate("/transaction-limits");
+        break;
+      case "Password":
+        navigate("/change-password");
+        break;
+      case "Notification":
+        navigate("/notifications");
+        break;
+      case "Account pin":
+        navigate("/account-pin");
+        break;
+      case "Cards and Banks":
+        navigate("/cards-and-banks");
+        break;
+      case "Referral and earn":
+        navigate("/refer-and-earn");
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 max-w-md mx-auto relative">
       {/* Status bar simulation */}
@@ -100,6 +128,7 @@ const Profile = () => {
                 {section.items.map((item, itemIndex) => (
                   <button
                     key={itemIndex}
+                    onClick={() => handleNavigateToSection(item.label)}
                     className="flex items-center justify-between w-full p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors"
                   >
                     <span className="font-medium">{item.label}</span>

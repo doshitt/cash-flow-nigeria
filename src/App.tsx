@@ -11,6 +11,11 @@ import Airtime from "./pages/Airtime";
 import { Vouchers } from "./pages/Vouchers";
 import ReferAndEarn from "./pages/ReferAndEarn";
 import Transfer from "./pages/Transfer";
+import TransactionLimits from "./pages/TransactionLimits";
+import ChangePassword from "./pages/ChangePassword";
+import Notifications from "./pages/Notifications";
+import AccountPin from "./pages/AccountPin";
+import CardsAndBanks from "./pages/CardsAndBanks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +35,11 @@ const App = () => (
           <Route path="/vouchers" element={<Vouchers />} />
           <Route path="/refer-and-earn" element={<ReferAndEarn />} />
           <Route path="/transfer" element={<Transfer />} />
+          <Route path="/transaction-limits" element={<TransactionLimits />} />
+          <Route path="/change-password" element={<ChangePassword />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/account-pin" element={<AccountPin />} />
+          <Route path="/cards-and-banks" element={<CardsAndBanks />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
