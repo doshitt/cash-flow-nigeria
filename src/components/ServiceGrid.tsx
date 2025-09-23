@@ -39,9 +39,8 @@ export const ServiceGrid = () => {
   const handleServiceClick = (service: ServiceItem) => {
     if (service.label === "Airtime") {
       navigate("/airtime");
-    } else if (service.label === "Gift Vouchers") {
-      navigate("/vouchers");
     }
+    // Gift Vouchers removed - now handled by Coupons section
     // Add more service navigation here as needed
   };
 

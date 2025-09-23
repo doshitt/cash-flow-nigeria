@@ -1,4 +1,7 @@
 import { Card } from "@/components/ui/card";
+import { ExchangeRateModal } from "@/components/ExchangeRateModal";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const inAdsServices = [
   { icon: "🎫", label: "Create" },
@@ -13,6 +16,19 @@ const bottomServices = [
 ];
 
 export const InAdsSection = () => {
+  const navigate = useNavigate();
+  const [showExchangeRate, setShowExchangeRate] = useState(false);
+
+  const handleServiceClick = (service: { icon: string; label: string }) => {
+    if (service.label === "Create" || service.label === "Redeem") {
+      navigate("/vouchers");
+    } else if (service.label === "Refer and Earn") {
+      navigate("/refer-and-earn");
+    } else if (service.label === "Ex Rate") {
+      setShowExchangeRate(true);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -21,7 +37,11 @@ export const InAdsSection = () => {
           <h4 className="font-medium text-muted-foreground">Coupons</h4>
           <div className="grid grid-cols-3 gap-3">
             {inAdsServices.map((service, index) => (
-              <Card key={index} className="p-4 card-shadow border-0 hover:shadow-lg transition-shadow cursor-pointer">
+              <Card 
+                key={index} 
+                className="p-4 card-shadow border-0 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleServiceClick(service)}
+              >
                 <div className="flex flex-col items-center gap-2 text-center">
                   <span className="text-2xl">{service.icon}</span>
                   <span className="text-xs font-medium leading-tight">{service.label}</span>
@@ -34,7 +54,11 @@ export const InAdsSection = () => {
 
       <div className="grid grid-cols-3 gap-3">
         {bottomServices.map((service, index) => (
-          <Card key={index} className="p-4 card-shadow border-0 hover:shadow-lg transition-shadow cursor-pointer">
+          <Card 
+            key={index} 
+            className="p-4 card-shadow border-0 hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => handleServiceClick(service)}
+          >
             <div className="flex flex-col items-center gap-2 text-center">
               <span className="text-2xl">{service.icon}</span>
               <span className="text-xs font-medium leading-tight">{service.label}</span>
@@ -42,6 +66,11 @@ export const InAdsSection = () => {
           </Card>
         ))}
       </div>
+      
+      <ExchangeRateModal 
+        open={showExchangeRate} 
+        onOpenChange={setShowExchangeRate} 
+      />
     </div>
   );
 };

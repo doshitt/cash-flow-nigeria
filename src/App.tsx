@@ -9,6 +9,7 @@ import Wallet from "./pages/Wallet";
 import Savings from "./pages/Savings";
 import Airtime from "./pages/Airtime";
 import { Vouchers } from "./pages/Vouchers";
+import ReferAndEarn from "./pages/ReferAndEarn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/savings" element={<Savings />} />
           <Route path="/airtime" element={<Airtime />} />
           <Route path="/vouchers" element={<Vouchers />} />
+          <Route path="/refer-and-earn" element={<ReferAndEarn />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
