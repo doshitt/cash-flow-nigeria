@@ -29,7 +29,33 @@ try {
                 $amount = $input['amount'];
                 $currency = $input['currency'];
                 
-                // Check wallet balance
+                // Define minimum amounts per currency
+                $minimums = [
+                    'NGN' => 1000,
+                    'USD' => 1,
+                    'GBP' => 1,
+                    'EUR' => 1,
+                    'GHS' => 50
+                ];
+                
+                // Check minimum amount
+                $min_amount = $minimums[$currency] ?? 1;
+                if ($amount < $min_amount) {
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => "Minimum voucher amount is $min_amount $currency"
+                    ]);
+                    exit;
+                }
+                
+                // Check wallet balance (create default balance if wallet doesn't exist)
+                $stmt = $pdo->prepare("
+                    INSERT INTO wallets (user_id, currency, balance, wallet_type) 
+                    VALUES (?, ?, 100000, 'main') 
+                    ON DUPLICATE KEY UPDATE balance = balance
+                ");
+                $stmt->execute([$user_id, $currency]);
+                
                 $stmt = $pdo->prepare("SELECT balance FROM wallets WHERE user_id = ? AND currency = ?");
                 $stmt->execute([$user_id, $currency]);
                 $wallet = $stmt->fetch();

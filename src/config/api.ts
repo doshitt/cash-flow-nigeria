@@ -8,6 +8,7 @@ export const API_CONFIG = {
     CREATE_VIRTUAL_ACCOUNT: '/create_virtual_account.php',
     PAYMENT_REQUESTS: '/payment_requests.php',
     WEBHOOK_HANDLER: '/webhook_handler.php',
+    GIFT_VOUCHERS: '/gift_vouchers.php',
   },
   
   // Request configuration

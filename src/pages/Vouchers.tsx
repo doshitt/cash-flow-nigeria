@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -24,11 +24,11 @@ interface Voucher {
 }
 
 const currencies = [
-  { code: "NGN", symbol: "₦", balance: 50000 },
-  { code: "USD", symbol: "$", balance: 1200 },
-  { code: "GBP", symbol: "£", balance: 800 },
-  { code: "EUR", symbol: "€", balance: 900 },
-  { code: "GHS", symbol: "₵", balance: 15000 }
+  { code: "NGN", symbol: "₦", balance: 50000, minimum: 1000 },
+  { code: "USD", symbol: "$", balance: 1200, minimum: 1 },
+  { code: "GBP", symbol: "£", balance: 800, minimum: 1 },
+  { code: "EUR", symbol: "€", balance: 900, minimum: 1 },
+  { code: "GHS", symbol: "₵", balance: 15000, minimum: 50 }
 ];
 
 export const Vouchers = () => {
@@ -46,6 +46,24 @@ export const Vouchers = () => {
 
   const selectedCurrencyData = currencies.find(c => c.code === selectedCurrency);
 
+  // Fetch user vouchers
+  const fetchUserVouchers = async () => {
+    try {
+      const response = await fetch('http://localhost/backend/gift_vouchers.php?action=user_vouchers&user_id=1');
+      const data = await response.json();
+      if (data.success) {
+        setUserVouchers(data.vouchers);
+      }
+    } catch (error) {
+      console.error('Failed to fetch vouchers:', error);
+    }
+  };
+
+  // Load user vouchers on component mount
+  useEffect(() => {
+    fetchUserVouchers();
+  }, []);
+
   const handleCreateVoucher = async () => {
     if (!selectedCurrency || !amount) {
       toast({
@@ -58,7 +76,19 @@ export const Vouchers = () => {
 
     const numericAmount = parseFloat(amount);
     const currencyBalance = selectedCurrencyData?.balance || 0;
+    const minimumAmount = selectedCurrencyData?.minimum || 0;
 
+    // Check minimum amount
+    if (numericAmount < minimumAmount) {
+      toast({
+        title: "Minimum Amount Required",
+        description: `Minimum voucher amount is ${selectedCurrencyData?.symbol}${minimumAmount.toLocaleString()} ${selectedCurrency}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check sufficient balance
     if (numericAmount > currencyBalance) {
       toast({
         title: "Insufficient Balance",
@@ -71,7 +101,7 @@ export const Vouchers = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost/tesapay/backend/gift_vouchers.php?action=create', {
+      const response = await fetch('http://localhost/backend/gift_vouchers.php?action=create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,17 +118,20 @@ export const Vouchers = () => {
       if (data.success) {
         setCreatedVoucherCode(data.voucher_code);
         setCurrentStep('success');
+        // Refresh voucher list after creation
+        fetchUserVouchers();
       } else {
         toast({
           title: "Error",
-          description: data.message,
+          description: data.message || "Failed to create voucher",
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error('Voucher creation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create voucher. Please try again.",
+        description: "Failed to create voucher. Please check your connection and try again.",
         variant: "destructive"
       });
     }
@@ -119,7 +152,7 @@ export const Vouchers = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost/tesapay/backend/gift_vouchers.php?action=redeem', {
+      const response = await fetch('http://localhost/backend/gift_vouchers.php?action=redeem', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -263,7 +296,7 @@ export const Vouchers = () => {
           </div>
           {selectedCurrencyData && (
             <p className="text-xs text-muted-foreground mt-1">
-              *Limit: {selectedCurrencyData.symbol}100,000 - 1 Million
+              *Minimum: {selectedCurrencyData.symbol}{selectedCurrencyData.minimum.toLocaleString()} {selectedCurrency}
             </p>
           )}
         </div>
@@ -277,8 +310,8 @@ export const Vouchers = () => {
         </Button>
 
         <div className="text-xs text-muted-foreground mb-6">
-          <p>*10k Gift - Redeem</p>
-          <p>*20k Gift - Net Redeem</p>
+          <p>*Platform takes 10% fee on redemption</p>
+          <p>*Vouchers expire after 1 year</p>
         </div>
 
         {/* Action Buttons */}
