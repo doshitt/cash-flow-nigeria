@@ -2,9 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { Login } from "./pages/Login";
+import { Signup } from "./pages/Signup";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
@@ -37,6 +40,11 @@ import AdminTeam from "./pages/admin/Team";
 
 const queryClient = new QueryClient();
 
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -44,29 +52,35 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* User App Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/savings" element={<Savings />} />
-          <Route path="/airtime" element={<Airtime />} />
-          <Route path="/vouchers" element={<Vouchers />} />
-          <Route path="/refer-and-earn" element={<ReferAndEarn />} />
-          <Route path="/recent-transactions" element={<RecentTransactions />} />
-          <Route path="/transfer" element={<Transfer />} />
-          <Route path="/transaction-limits" element={<TransactionLimits />} />
-          <Route path="/change-password" element={<ChangePassword />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/account-pin" element={<AccountPin />} />
-          <Route path="/cards-and-banks" element={<CardsAndBanks />} />
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* Protected User App Routes */}
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+          <Route path="/savings" element={<ProtectedRoute><Savings /></ProtectedRoute>} />
+          <Route path="/airtime" element={<ProtectedRoute><Airtime /></ProtectedRoute>} />
+          <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
+          <Route path="/refer-and-earn" element={<ProtectedRoute><ReferAndEarn /></ProtectedRoute>} />
+          <Route path="/recent-transactions" element={<ProtectedRoute><RecentTransactions /></ProtectedRoute>} />
+          <Route path="/transfer" element={<ProtectedRoute><Transfer /></ProtectedRoute>} />
+          <Route path="/transaction-limits" element={<ProtectedRoute><TransactionLimits /></ProtectedRoute>} />
+          <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/account-pin" element={<ProtectedRoute><AccountPin /></ProtectedRoute>} />
+          <Route path="/cards-and-banks" element={<ProtectedRoute><CardsAndBanks /></ProtectedRoute>} />
           
           {/* Admin Dashboard Routes */}
           <Route path="/admin" element={
-            <SidebarProvider>
-              <div className="min-h-screen flex w-full">
-                <AdminLayout />
-              </div>
-            </SidebarProvider>
+            <ProtectedRoute>
+              <SidebarProvider>
+                <div className="min-h-screen flex w-full">
+                  <AdminLayout />
+                </div>
+              </SidebarProvider>
+            </ProtectedRoute>
           }>
             <Route index element={<Dashboard />} />
             <Route path="transactions" element={<AdminTransactions />} />
@@ -83,7 +97,7 @@ const App = () => (
             <Route path="team" element={<AdminTeam />} />
           </Route>
           
-          {/* Catch-all route - MUST be last */}
+          {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
