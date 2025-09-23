@@ -12,60 +12,84 @@ import {
   CheckCircle
 } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, AreaChart, Area } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { getAdminApiUrl } from "@/config/api";
 
-const stats = [
-  {
-    title: "Total Users",
-    value: "12,543",
-    change: "+12.5%",
-    trend: "up",
-    icon: Users,
-    color: "text-blue-600"
-  },
-  {
-    title: "Total Revenue",
-    value: "₦2,457,890",
-    change: "+8.2%",
-    trend: "up",
-    icon: DollarSign,
-    color: "text-green-600"
-  },
-  {
-    title: "Active Cards",
-    value: "8,234",
-    change: "+4.1%",
-    trend: "up",
-    icon: CreditCard,
-    color: "text-purple-600"
-  },
-  {
-    title: "Transaction Volume",
-    value: "₦45.2M",
-    change: "-2.3%",
-    trend: "down",
-    icon: TrendingUp,
-    color: "text-orange-600"
-  }
-];
+interface DashboardStats {
+  total_users: number;
+  total_revenue: number;
+  active_cards: number;
+  transaction_volume: number;
+}
 
-const revenueData = [
-  { month: "Jan", revenue: 4000, transactions: 240 },
-  { month: "Feb", revenue: 3000, transactions: 139 },
-  { month: "Mar", revenue: 2000, transactions: 980 },
-  { month: "Apr", revenue: 2780, transactions: 390 },
-  { month: "May", revenue: 1890, transactions: 480 },
-  { month: "Jun", revenue: 2390, transactions: 380 },
-];
+interface MonthlyData {
+  month: string;
+  revenue: number;
+  transactions: number;
+}
 
-const recentTransactions = [
-  { id: "TXN001", user: "John Doe", amount: "₦15,000", type: "Transfer", status: "completed" },
-  { id: "TXN002", user: "Jane Smith", amount: "₦8,500", type: "Airtime", status: "completed" },
-  { id: "TXN003", user: "Mike Johnson", amount: "₦25,000", type: "Transfer", status: "pending" },
-  { id: "TXN004", user: "Sarah Wilson", amount: "₦3,200", type: "Data", status: "failed" },
-  { id: "TXN005", user: "David Brown", amount: "₦12,000", type: "Voucher", status: "completed" },
-];
+interface RecentTransaction {
+  id: string;
+  first_name: string;
+  last_name: string;
+  amount: number;
+  type: string;
+  status: string;
+  created_at: string;
+}
+
+const fetchDashboardStats = async () => {
+  const response = await fetch(getAdminApiUrl('/dashboard_stats.php'));
+  if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+  return response.json();
+};
 
 export default function Dashboard() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: fetchDashboardStats,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  if (isLoading) {
+    return <div className="p-6">Loading dashboard...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">Error loading dashboard data</div>;
+  }
+
+  const stats = data?.data?.stats;
+  const monthlyData = data?.data?.monthly_data || [];
+  const recentTransactions = data?.data?.recent_transactions || [];
+
+  const statsCards = [
+    {
+      title: "Total Users",
+      value: stats?.total_users?.toLocaleString() || "0",
+      icon: Users,
+      color: "text-blue-600"
+    },
+    {
+      title: "Total Revenue",
+      value: `₦${stats?.total_revenue?.toLocaleString() || "0"}`,
+      icon: DollarSign,
+      color: "text-green-600"
+    },
+    {
+      title: "Active Cards",
+      value: stats?.active_cards?.toLocaleString() || "0",
+      icon: CreditCard,
+      color: "text-purple-600"
+    },
+    {
+      title: "Transaction Volume",
+      value: `₦${stats?.transaction_volume?.toLocaleString() || "0"}`,
+      icon: TrendingUp,
+      color: "text-orange-600"
+    }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -90,7 +114,7 @@ export default function Dashboard() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {statsCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -100,17 +124,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center text-xs text-muted-foreground">
-                {stat.trend === "up" ? (
-                  <ArrowUpRight className="mr-1 h-3 w-3 text-green-500" />
-                ) : (
-                  <ArrowDownRight className="mr-1 h-3 w-3 text-red-500" />
-                )}
-                <span className={stat.trend === "up" ? "text-green-500" : "text-red-500"}>
-                  {stat.change}
-                </span>
-                <span className="ml-1">from last month</span>
-              </div>
+              <p className="text-xs text-muted-foreground">Live data from platform</p>
             </CardContent>
           </Card>
         ))}
@@ -127,7 +141,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="pl-2">
             <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={revenueData}>
+              <AreaChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -191,11 +205,13 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentTransactions.map((transaction) => (
+            {recentTransactions.map((transaction: RecentTransaction) => (
               <div key={transaction.id} className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div>
-                    <p className="text-sm font-medium leading-none">{transaction.user}</p>
+                    <p className="text-sm font-medium leading-none">
+                      {transaction.first_name} {transaction.last_name}
+                    </p>
                     <p className="text-sm text-muted-foreground">{transaction.id}</p>
                   </div>
                 </div>
@@ -209,7 +225,7 @@ export default function Dashboard() {
                   >
                     {transaction.status}
                   </Badge>
-                  <div className="font-medium">{transaction.amount}</div>
+                  <div className="font-medium">₦{transaction.amount.toLocaleString()}</div>
                 </div>
               </div>
             ))}

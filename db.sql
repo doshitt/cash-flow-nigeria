@@ -330,3 +330,123 @@ CREATE TABLE IF NOT EXISTS user_activities (
     INDEX idx_user_activity (user_id, activity_type),
     INDEX idx_created_at (created_at)
 );
+
+-- User notifications table
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type ENUM('transaction', 'system', 'promotion', 'push') DEFAULT 'system',
+    is_read BOOLEAN DEFAULT FALSE,
+    metadata JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_user_notifications (user_id, is_read),
+    INDEX idx_created_at (created_at)
+);
+
+-- Admin dashboard tables
+-- Disputes table
+CREATE TABLE IF NOT EXISTS disputes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    transaction_id VARCHAR(50) NOT NULL,
+    reason TEXT NOT NULL,
+    status ENUM('open', 'investigating', 'resolved', 'closed') DEFAULT 'open',
+    resolution TEXT,
+    resolved_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Admin coupons table (separate from user gift vouchers)
+CREATE TABLE IF NOT EXISTS admin_coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    type ENUM('percentage', 'fixed') NOT NULL,
+    value DECIMAL(10,2) NOT NULL,
+    min_amount DECIMAL(10,2) DEFAULT 0,
+    max_uses INT NULL,
+    current_uses INT DEFAULT 0,
+    status ENUM('active', 'inactive', 'expired') DEFAULT 'active',
+    expires_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Coupon usage table
+CREATE TABLE IF NOT EXISTS admin_coupon_usage (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    coupon_id INT NOT NULL,
+    user_id INT NOT NULL,
+    transaction_id VARCHAR(50) NOT NULL,
+    discount_amount DECIMAL(10,2) NOT NULL,
+    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (coupon_id) REFERENCES admin_coupons(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Exchange rates table (admin managed)
+CREATE TABLE IF NOT EXISTS admin_exchange_rates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    from_currency VARCHAR(3) NOT NULL,
+    to_currency VARCHAR(3) NOT NULL,
+    rate DECIMAL(15,6) NOT NULL,
+    fee_percentage DECIMAL(5,2) DEFAULT 0,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_pair (from_currency, to_currency)
+);
+
+-- Banner ads table
+CREATE TABLE IF NOT EXISTS banner_ads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    link_url VARCHAR(500),
+    position ENUM('top', 'middle', 'bottom') DEFAULT 'top',
+    status ENUM('active', 'inactive', 'scheduled') DEFAULT 'active',
+    start_date TIMESTAMP NULL,
+    end_date TIMESTAMP NULL,
+    click_count INT DEFAULT 0,
+    impression_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Admin team table
+CREATE TABLE IF NOT EXISTS admin_team (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role ENUM('super_admin', 'admin', 'customer_care', 'kyc_audit', 'finance') NOT NULL,
+    permissions JSON,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Push notifications table
+CREATE TABLE IF NOT EXISTS push_notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    target_type ENUM('all', 'specific', 'group') NOT NULL,
+    target_users JSON NULL,
+    status ENUM('draft', 'scheduled', 'sent') DEFAULT 'draft',
+    scheduled_at TIMESTAMP NULL,
+    sent_at TIMESTAMP NULL,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES admin_team(id) ON DELETE CASCADE
+);
+
+-- Insert default admin user
+INSERT INTO admin_team (email, password, first_name, last_name, role, permissions) VALUES
+('admin@tesapay.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Super', 'Admin', 'super_admin', '["all"]');
