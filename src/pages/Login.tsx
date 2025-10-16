@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Fingerprint } from "lucide-react";
+import { API_CONFIG, getApiUrl } from "@/config/api";
 
 export const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -30,7 +31,7 @@ export const Login = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/backend/auth/login.php', {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH_LOGIN), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +96,7 @@ export const Login = () => {
 
       if (credential) {
         // Send credential to backend for verification
-        const response = await fetch('/backend/auth/biometric_login.php', {
+        const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH_BIOMETRIC_LOGIN), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_CONFIG, getApiUrl } from "@/config/api";
 
 interface User {
   id: number;
@@ -61,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!tokenToCheck) return false;
 
     try {
-      const response = await fetch('/backend/auth/session_check.php', {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH_SESSION_CHECK), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

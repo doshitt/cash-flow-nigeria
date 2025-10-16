@@ -5,6 +5,14 @@ export const API_CONFIG = {
   
   // API endpoints
   ENDPOINTS: {
+    // Auth
+    AUTH_LOGIN: '/auth/login.php',
+    AUTH_SIGNUP: '/auth/signup.php',
+    AUTH_SESSION_CHECK: '/auth/session_check.php',
+    AUTH_VERIFY_OTP: '/auth/verify_otp.php',
+    AUTH_BIOMETRIC_LOGIN: '/auth/biometric_login.php',
+
+    // Core
     CREATE_VIRTUAL_ACCOUNT: '/create_virtual_account.php',
     PAYMENT_REQUESTS: '/payment_requests.php',
     WEBHOOK_HANDLER: '/webhook_handler.php',

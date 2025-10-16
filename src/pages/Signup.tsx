@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { API_CONFIG, getApiUrl } from "@/config/api";
 
 interface SignupData {
   surname: string;
@@ -144,7 +145,7 @@ export const Signup = () => {
   const handleSignup = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/backend/auth/signup.php', {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.AUTH_SIGNUP), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
