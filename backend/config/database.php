@@ -1,9 +1,9 @@
 <?php
 // Database configuration
 $host = 'localhost';
-$dbname = 'tesapay_db';
-$username = 'root';
-$password = '';
+$dbname = 'piitzozc_tesapay';
+$username = 'piitzozc_tesapay';
+$password = '@Muilirhema1!';
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
 
