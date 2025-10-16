@@ -1,19 +1,21 @@
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useFeatures } from "@/hooks/useFeatures";
 
 interface ServiceItem {
   icon: string;
   label: string;
+  featureId?: string;
   href?: string;
   onClick?: () => void;
 }
 
 const services: ServiceItem[] = [
-  { icon: "💰", label: "Add Money" },
+  { icon: "💰", label: "Add Money", featureId: "add_via_bank" },
   { icon: "📄", label: "Recent Transactions" },
-  { icon: "🎁", label: "Gift Vouchers" },
-  { icon: "📱", label: "Airtime" },
-  { icon: "📶", label: "Data" },
+  { icon: "🎁", label: "Gift Vouchers", featureId: "voucher" },
+  { icon: "📱", label: "Airtime", featureId: "airtime" },
+  { icon: "📶", label: "Data", featureId: "data" },
   { icon: "💡", label: "Electricity" },
   { icon: "📊", label: "Betting" },
   { icon: "📺", label: "TV" }
@@ -35,6 +37,7 @@ const ServiceCard = ({ icon, label, onClick }: ServiceItem) => (
 
 export const ServiceGrid = () => {
   const navigate = useNavigate();
+  const { isFeatureEnabled } = useFeatures();
 
   const handleServiceClick = (service: ServiceItem) => {
     if (service.label === "Airtime") {
@@ -45,9 +48,15 @@ export const ServiceGrid = () => {
     // Add more service navigation here as needed
   };
 
+  // Filter services based on feature toggles
+  const visibleServices = services.filter(service => {
+    if (!service.featureId) return true; // Always show if no feature ID
+    return isFeatureEnabled(service.featureId);
+  });
+
   return (
     <div className="grid grid-cols-3 gap-3">
-      {services.map((service, index) => (
+      {visibleServices.map((service, index) => (
         <ServiceCard 
           key={index} 
           {...service} 

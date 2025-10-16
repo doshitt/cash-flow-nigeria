@@ -18,12 +18,12 @@ try {
     $totalUsers = $userStmt->fetch()['total_users'];
     
     // Get total revenue (sum of all successful transactions)
-    $revenueStmt = $pdo->query("SELECT SUM(amount) as total_revenue FROM transactions WHERE status = 'completed'");
+    $revenueStmt = $pdo->query("SELECT SUM(amount) as total_revenue FROM transactions");
     $totalRevenue = $revenueStmt->fetch()['total_revenue'] ?? 0;
     
     // Get active cards
-    $cardsStmt = $pdo->query("SELECT COUNT(*) as active_cards FROM user_cards WHERE status = 'active'");
-    $activeCards = $cardsStmt->fetch()['active_cards'];
+    $cardsStmt = $pdo->query("SELECT COUNT(*) as active_cards FROM user_cards");
+    $activeCards = $cardsStmt->fetch()['active_cards'] ?? 0;
     
     // Get transaction volume (last 30 days)
     $volumeStmt = $pdo->query("SELECT SUM(amount) as volume FROM transactions WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
@@ -37,7 +37,6 @@ try {
             COUNT(*) as transactions
         FROM transactions 
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-        AND status = 'completed'
         GROUP BY MONTH(created_at), YEAR(created_at)
         ORDER BY created_at
     ");

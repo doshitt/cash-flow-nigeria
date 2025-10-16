@@ -11,6 +11,7 @@ import { VoucherRedeemSuccess } from "@/components/VoucherRedeemSuccess";
 import { useToast } from "@/hooks/use-toast";
 import { TopHeader } from "@/components/TopHeader";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { useFeatures } from "@/hooks/useFeatures";
 
 interface Voucher {
   id: number;
@@ -34,6 +35,14 @@ const currencies = [
 export const Vouchers = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isFeatureEnabled } = useFeatures();
+
+  // Redirect if feature is disabled
+  useEffect(() => {
+    if (!isFeatureEnabled('voucher')) {
+      navigate('/');
+    }
+  }, [isFeatureEnabled, navigate]);
   const [currentStep, setCurrentStep] = useState<'create' | 'success' | 'redeem' | 'redeem-success'>('create');
   const [selectedCurrency, setSelectedCurrency] = useState<string>("");
   const [amount, setAmount] = useState<string>("");

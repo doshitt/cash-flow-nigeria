@@ -1,13 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { TopHeader } from "@/components/TopHeader";
 import { Button } from "@/components/ui/button";
 import { X, Plus } from "lucide-react";
 import { CreateSavingsTarget } from "@/components/CreateSavingsTarget";
+import { useFeatures } from "@/hooks/useFeatures";
+import { useNavigate } from "react-router-dom";
 
 const Savings = () => {
+  const navigate = useNavigate();
+  const { isFeatureEnabled } = useFeatures();
   const [showCreateTarget, setShowCreateTarget] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
+
+  // Redirect if feature is disabled
+  useEffect(() => {
+    if (!isFeatureEnabled('savings')) {
+      navigate('/');
+    }
+  }, [isFeatureEnabled, navigate]);
 
   return (
     <div className="min-h-screen bg-background pb-20">

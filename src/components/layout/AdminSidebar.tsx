@@ -13,7 +13,8 @@ import {
   Image,
   UserCog,
   Home,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Zap
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,19 +29,20 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/admin", icon: Home },
-  { title: "Transactions", url: "/admin/transactions", icon: ArrowLeftRight },
-  { title: "Customers", url: "/admin/customers", icon: Users },
-  { title: "Disputes", url: "/admin/disputes", icon: MessageSquare },
-  { title: "Refunds", url: "/admin/refunds", icon: RefreshCw },
-  { title: "Payment Requests", url: "/admin/payment-requests", icon: FileText },
-  { title: "Coupons", url: "/admin/coupons", icon: Gift },
-  { title: "Exchange Rate", url: "/admin/exchange-rate", icon: TrendingUp },
-  { title: "Referrals", url: "/admin/referrals", icon: BarChart3 },
-  { title: "Cards", url: "/admin/cards", icon: CreditCard },
-  { title: "Notifications", url: "/admin/notifications", icon: Bell },
-  { title: "Banner Ads", url: "/admin/banner-ads", icon: Image },
-  { title: "Team", url: "/admin/team", icon: UserCog },
+  { title: "Dashboard", url: "/doshitt", icon: Home },
+  { title: "Transactions", url: "/doshitt/transactions", icon: ArrowLeftRight },
+  { title: "Customers", url: "/doshitt/customers", icon: Users },
+  { title: "Disputes", url: "/doshitt/disputes", icon: MessageSquare },
+  { title: "Refunds", url: "/doshitt/refunds", icon: RefreshCw },
+  { title: "Payment Requests", url: "/doshitt/payment-requests", icon: FileText },
+  { title: "Coupons", url: "/doshitt/coupons", icon: Gift },
+  { title: "Exchange Rate", url: "/doshitt/exchange-rate", icon: TrendingUp },
+  { title: "Referrals", url: "/doshitt/referrals", icon: BarChart3 },
+  { title: "Cards", url: "/doshitt/cards", icon: CreditCard },
+  { title: "Notifications", url: "/doshitt/notifications", icon: Bell },
+  { title: "Banner Ads", url: "/doshitt/banner-ads", icon: Image },
+  { title: "Team", url: "/doshitt/team", icon: UserCog },
+  { title: "Features", url: "/doshitt/features", icon: Zap },
 ];
 
 export function AdminSidebar() {
@@ -49,7 +51,7 @@ export function AdminSidebar() {
   const currentPath = location.pathname;
 
   const isActive = (path: string) => {
-    if (path === "/admin") return currentPath === "/admin";
+    if (path === "/doshitt") return currentPath === "/doshitt";
     return currentPath.startsWith(path);
   };
 

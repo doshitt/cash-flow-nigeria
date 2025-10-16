@@ -37,6 +37,7 @@ import AdminCards from "./pages/admin/Cards";
 import AdminNotifications from "./pages/admin/Notifications";
 import AdminBannerAds from "./pages/admin/BannerAds";
 import AdminTeam from "./pages/admin/Team";
+import AdminFeatures from "./pages/admin/Features";
 
 const queryClient = new QueryClient();
 
@@ -73,7 +74,7 @@ const App = () => (
           <Route path="/cards-and-banks" element={<ProtectedRoute><CardsAndBanks /></ProtectedRoute>} />
           
           {/* Admin Dashboard Routes */}
-          <Route path="/admin" element={
+          <Route path="/doshitt" element={
             <ProtectedRoute>
               <SidebarProvider>
                 <div className="min-h-screen flex w-full">
@@ -95,6 +96,7 @@ const App = () => (
             <Route path="notifications" element={<AdminNotifications />} />
             <Route path="banner-ads" element={<AdminBannerAds />} />
             <Route path="team" element={<AdminTeam />} />
+            <Route path="features" element={<AdminFeatures />} />
           </Route>
           
           {/* Catch-all route */}

@@ -7,6 +7,7 @@ import { SendToTesapayUser } from "@/components/SendToTesapayUser";
 import { SendToNigeriaBank } from "@/components/SendToNigeriaBank";
 import { SendToInternationalBank } from "@/components/SendToInternationalBank";
 import { TransferConfirmation } from "@/components/TransferConfirmation";
+import { useFeatures } from "@/hooks/useFeatures";
 
 export type TransferType = 'tesapay' | 'nigeria' | 'international' | null;
 
@@ -20,6 +21,7 @@ export interface TransferData {
 
 const Transfer = () => {
   const navigate = useNavigate();
+  const { isFeatureEnabled } = useFeatures();
   const [selectedType, setSelectedType] = useState<TransferType>(null);
   const [transferData, setTransferData] = useState<TransferData | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -93,32 +95,38 @@ const Transfer = () => {
 
       {/* Transfer Options */}
       <div className="p-4 space-y-4">
-        <Card 
-          className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setSelectedType('tesapay')}
-        >
-          <div className="text-center">
-            <h3 className="text-lg font-medium">Send to Tesapay User</h3>
-          </div>
-        </Card>
+        {isFeatureEnabled('tesapay_transfer') && (
+          <Card 
+            className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setSelectedType('tesapay')}
+          >
+            <div className="text-center">
+              <h3 className="text-lg font-medium">Send to Tesapay User</h3>
+            </div>
+          </Card>
+        )}
 
-        <Card 
-          className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setSelectedType('nigeria')}
-        >
-          <div className="text-center">
-            <h3 className="text-lg font-medium">Send to Nigeria Bank</h3>
-          </div>
-        </Card>
+        {isFeatureEnabled('bank_transfer') && (
+          <Card 
+            className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setSelectedType('nigeria')}
+          >
+            <div className="text-center">
+              <h3 className="text-lg font-medium">Send to Nigeria Bank</h3>
+            </div>
+          </Card>
+        )}
 
-        <Card 
-          className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setSelectedType('international')}
-        >
-          <div className="text-center">
-            <h3 className="text-lg font-medium">Send to International Bank</h3>
-          </div>
-        </Card>
+        {isFeatureEnabled('international_transfer') && (
+          <Card 
+            className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setSelectedType('international')}
+          >
+            <div className="text-center">
+              <h3 className="text-lg font-medium">Send to International Bank</h3>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

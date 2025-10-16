@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AirtimePurchase } from "@/components/AirtimePurchase";
 import { AirtimeConfirmation } from "@/components/AirtimeConfirmation";
 import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { TransactionReceipt } from "@/components/TransactionReceipt";
 import { toast } from "@/hooks/use-toast";
+import { useFeatures } from "@/hooks/useFeatures";
 
 type AirtimeStep = "purchase" | "confirmation" | "success" | "receipt";
 
@@ -20,9 +21,17 @@ interface TransactionData {
 
 export default function Airtime() {
   const navigate = useNavigate();
+  const { isFeatureEnabled } = useFeatures();
   const [currentStep, setCurrentStep] = useState<AirtimeStep>("purchase");
   const [purchaseData, setPurchaseData] = useState<{ phoneNumber: string; amount: number } | null>(null);
   const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
+
+  // Redirect if feature is disabled
+  useEffect(() => {
+    if (!isFeatureEnabled('airtime')) {
+      navigate('/');
+    }
+  }, [isFeatureEnabled, navigate]);
 
   const handlePurchaseConfirm = (data: { phoneNumber: string; amount: number }) => {
     setPurchaseData(data);
