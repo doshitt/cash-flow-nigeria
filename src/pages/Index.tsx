@@ -4,6 +4,7 @@ import { ServiceGrid } from "@/components/ServiceGrid";
 import { ResellingSection } from "@/components/ResellingSection";
 import { InAdsSection } from "@/components/InAdsSection";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { KYCAlertBanner } from "@/components/KYCAlertBanner";
 
 const Index = () => {
   return (
@@ -26,6 +27,7 @@ const Index = () => {
       <TopHeader />
       
       <div className="px-4 space-y-6">
+        <KYCAlertBanner />
         <BalanceCard />
         <ServiceGrid />
         <ResellingSection />

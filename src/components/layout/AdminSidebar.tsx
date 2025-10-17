@@ -14,7 +14,8 @@ import {
   UserCog,
   Home,
   ArrowLeftRight,
-  Zap
+  Zap,
+  FileCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,7 @@ const menuItems = [
   { title: "Banner Ads", url: "/doshitt/banner-ads", icon: Image },
   { title: "Team", url: "/doshitt/team", icon: UserCog },
   { title: "Features", url: "/doshitt/features", icon: Zap },
+  { title: "KYC Verifications", url: "/doshitt/kyc-verifications", icon: FileCheck },
 ];
 
 export function AdminSidebar() {

@@ -38,6 +38,8 @@ import AdminNotifications from "./pages/admin/Notifications";
 import AdminBannerAds from "./pages/admin/BannerAds";
 import AdminTeam from "./pages/admin/Team";
 import AdminFeatures from "./pages/admin/Features";
+import AdminKYCVerifications from "./pages/admin/KYCVerifications";
+import KYCVerification from "./pages/KYCVerification";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +74,7 @@ const App = () => (
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/account-pin" element={<ProtectedRoute><AccountPin /></ProtectedRoute>} />
           <Route path="/cards-and-banks" element={<ProtectedRoute><CardsAndBanks /></ProtectedRoute>} />
+          <Route path="/profile/kyc-verification" element={<ProtectedRoute><KYCVerification /></ProtectedRoute>} />
           
           {/* Admin Dashboard Routes */}
           <Route path="/doshitt" element={
@@ -97,6 +100,7 @@ const App = () => (
             <Route path="banner-ads" element={<AdminBannerAds />} />
             <Route path="team" element={<AdminTeam />} />
             <Route path="features" element={<AdminFeatures />} />
+            <Route path="kyc-verifications" element={<AdminKYCVerifications />} />
           </Route>
           
           {/* Catch-all route */}
