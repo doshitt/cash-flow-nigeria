@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { ExchangeRateModal } from "@/components/ExchangeRateModal";
+import { BannerAdsCarousel } from "@/components/BannerAdsCarousel";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -33,6 +34,10 @@ export const InAdsSection = () => {
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="font-semibold text-lg">In Ads</h3>
+        
+        {/* Banner Ads Carousel */}
+        <BannerAdsCarousel />
+        
         <div className="space-y-4">
           <h4 className="font-medium text-muted-foreground">Coupons</h4>
           <div className="grid grid-cols-3 gap-3">

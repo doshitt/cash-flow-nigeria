@@ -26,8 +26,8 @@ try {
         $input = json_decode(file_get_contents('php://input'), true);
         
         $stmt = $pdo->prepare("
-            INSERT INTO banner_ads (title, image_url, link_url, position, status, start_date, end_date)
-            VALUES (:title, :image_url, :link_url, :position, :status, :start_date, :end_date)
+            INSERT INTO banner_ads (title, image_url, link_url, position, status, display_type, start_date, end_date)
+            VALUES (:title, :image_url, :link_url, :position, :status, :display_type, :start_date, :end_date)
         ");
         
         $stmt->execute([
@@ -36,6 +36,7 @@ try {
             'link_url' => $input['link_url'] ?? null,
             'position' => $input['position'],
             'status' => $input['status'],
+            'display_type' => $input['display_type'] ?? 'inline',
             'start_date' => $input['start_date'] ?? null,
             'end_date' => $input['end_date'] ?? null
         ]);
@@ -48,7 +49,8 @@ try {
         $stmt = $pdo->prepare("
             UPDATE banner_ads 
             SET title = :title, image_url = :image_url, link_url = :link_url, 
-                position = :position, status = :status, start_date = :start_date, end_date = :end_date
+                position = :position, status = :status, display_type = :display_type,
+                start_date = :start_date, end_date = :end_date
             WHERE id = :id
         ");
         
@@ -58,6 +60,7 @@ try {
             'link_url' => $input['link_url'],
             'position' => $input['position'],
             'status' => $input['status'],
+            'display_type' => $input['display_type'] ?? 'inline',
             'start_date' => $input['start_date'],
             'end_date' => $input['end_date'],
             'id' => $input['id']
