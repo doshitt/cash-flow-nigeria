@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS kyc_verifications (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_user_id (user_id),
   INDEX idx_status (verification_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -56,9 +55,12 @@ CREATE TABLE IF NOT EXISTS kyc_documents (
   file_url TEXT,
   uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (kyc_verification_id) REFERENCES kyc_verifications(id) ON DELETE CASCADE,
   INDEX idx_kyc_verification (kyc_verification_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add foreign key constraints (run this after confirming users table exists)
+-- ALTER TABLE kyc_verifications ADD CONSTRAINT fk_kyc_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+-- ALTER TABLE kyc_documents ADD CONSTRAINT fk_kyc_doc FOREIGN KEY (kyc_verification_id) REFERENCES kyc_verifications(id) ON DELETE CASCADE;
 
 -- Add KYC tier to users table if not exists
 ALTER TABLE users 
