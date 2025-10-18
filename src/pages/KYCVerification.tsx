@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Upload, Check } from "lucide-react";
+import { ArrowLeft, Upload, Check, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { TopHeader } from "@/components/TopHeader";
 
 export default function KYCVerification() {
   const navigate = useNavigate();
-  const { kycDetails, submitKYC, uploadDocument, kycStatus } = useKYC();
+  const { kycDetails, submitKYC, uploadDocument, kycStatus, kycTier, isVerified } = useKYC();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [accountType, setAccountType] = useState<'individual' | 'business'>('individual');
@@ -99,6 +99,87 @@ export default function KYCVerification() {
     }
   };
 
+  // If approved, show verification success
+  if (isVerified && kycStatus === 'approved') {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <TopHeader />
+        
+        <div className="container max-w-2xl mx-auto px-4 pt-20">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="h-8 w-8 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Account Verified!</h2>
+                <p className="text-muted-foreground mb-4">
+                  Your KYC verification has been approved. You now have full access to all platform features.
+                </p>
+                <div className="bg-muted rounded-lg p-4 mb-6">
+                  <p className="text-sm font-semibold mb-1">Verification Tier: {kycTier.toUpperCase()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {kycTier === 'tier_1' && 'Transaction limit: $100/month'}
+                    {kycTier === 'tier_2' && 'Unlimited transactions'}
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/')} className="w-full">
+                  Go to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // If under review, show pending status
+  if (kycStatus === 'under_review' && kycDetails) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <TopHeader />
+        
+        <div className="container max-w-2xl mx-auto px-4 pt-20">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="h-8 w-8 text-yellow-600" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">KYC Under Review</h2>
+                <p className="text-muted-foreground mb-6">
+                  Your KYC submission is currently being reviewed by our team. This usually takes 1-2 business days.
+                </p>
+                <div className="bg-muted rounded-lg p-4 mb-6 text-left">
+                  <h3 className="font-semibold mb-2">Submitted Information:</h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="text-muted-foreground">Name:</span> {kycDetails.full_name}</p>
+                    <p><span className="text-muted-foreground">Account Type:</span> {kycDetails.account_type}</p>
+                    <p><span className="text-muted-foreground">Country:</span> {kycDetails.country}</p>
+                  </div>
+                </div>
+                <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+                  Back to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <TopHeader />
@@ -121,6 +202,7 @@ export default function KYCVerification() {
               {kycStatus === 'rejected' && kycDetails?.rejection_reason && (
                 <div className="mt-2 p-3 bg-destructive/10 rounded-md text-destructive text-sm">
                   <strong>Rejection Reason:</strong> {kycDetails.rejection_reason}
+                  <p className="mt-1">Please correct the issues and resubmit your KYC information.</p>
                 </div>
               )}
             </CardDescription>

@@ -79,7 +79,7 @@ try {
                     registration_number = ?,
                     tax_id = ?,
                     business_address = ?,
-                    verification_status = 'pending',
+                    verification_status = 'under_review',
                     updated_at = NOW()
                 WHERE user_id = ?
             ");
@@ -90,6 +90,10 @@ try {
                 $userId
             ]);
             $kycId = $existingKyc['id'];
+            
+            // Update user's KYC status to under_review
+            $stmt = $pdo->prepare("UPDATE users SET kyc_status = 'under_review' WHERE id = ?");
+            $stmt->execute([$userId]);
         } else {
             // Create new KYC submission
             $stmt = $pdo->prepare("
@@ -98,7 +102,7 @@ try {
                     phone_number, residential_address, city, state, country, postal_code,
                     company_name, registration_number, tax_id, business_address,
                     verification_status, kyc_tier
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'tier_0')
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'under_review', 'tier_0')
             ");
             $stmt->execute([
                 $userId, $accountType, $fullName, $nationality, $dateOfBirth,
@@ -106,6 +110,10 @@ try {
                 $companyName, $registrationNumber, $taxId, $businessAddress
             ]);
             $kycId = $pdo->lastInsertId();
+            
+            // Update user's KYC status to under_review
+            $stmt = $pdo->prepare("UPDATE users SET kyc_status = 'under_review' WHERE id = ?");
+            $stmt->execute([$userId]);
         }
         
         echo json_encode([

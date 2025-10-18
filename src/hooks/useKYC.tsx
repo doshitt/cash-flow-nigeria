@@ -99,7 +99,8 @@ export const useKYC = () => {
   const kycStatus: KYCStatus = kycData?.kyc_status || 'pending';
   const kycDetails: KYCData | null = kycData?.kyc_data || null;
   const isVerified = kycStatus === 'approved';
-  const needsKYC = !isVerified;
+  const needsKYC = kycStatus !== 'approved';
+  const hasSubmitted = !!kycDetails;
 
   // Feature access control based on tier
   const canAccessFeature = (feature: string): boolean => {
@@ -127,6 +128,7 @@ export const useKYC = () => {
     kycDetails,
     isVerified,
     needsKYC,
+    hasSubmitted,
     isLoading,
     submitKYC: submitKYC.mutate,
     uploadDocument: uploadDocument.mutate,

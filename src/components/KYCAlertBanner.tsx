@@ -6,7 +6,7 @@ import { useKYC } from "@/hooks/useKYC";
 
 export const KYCAlertBanner = () => {
   const navigate = useNavigate();
-  const { kycStatus, kycDetails, needsKYC } = useKYC();
+  const { kycStatus, kycDetails, needsKYC, hasSubmitted } = useKYC();
 
   if (!needsKYC) return null;
 
@@ -18,6 +18,8 @@ export const KYCAlertBanner = () => {
           title: "KYC Verification Rejected",
           description: kycDetails?.rejection_reason || "Your KYC was rejected. Please update your information and resubmit.",
           variant: "destructive" as const,
+          showButton: true,
+          buttonText: "Resubmit KYC",
         };
       case 'under_review':
         return {
@@ -25,14 +27,26 @@ export const KYCAlertBanner = () => {
           title: "KYC Under Review",
           description: "Your KYC submission is being reviewed. This usually takes 1-2 business days.",
           variant: "default" as const,
+          showButton: false,
         };
       case 'pending':
       default:
+        if (hasSubmitted) {
+          return {
+            icon: <AlertCircle className="h-5 w-5 text-warning" />,
+            title: "KYC Under Review",
+            description: "Your KYC submission is being reviewed. This usually takes 1-2 business days.",
+            variant: "default" as const,
+            showButton: false,
+          };
+        }
         return {
           icon: <AlertCircle className="h-5 w-5 text-warning" />,
           title: "Account Not Verified",
           description: "Your account is not yet verified. Complete KYC to access all features.",
           variant: "default" as const,
+          showButton: true,
+          buttonText: "Verify Now",
         };
     }
   };
@@ -49,13 +63,13 @@ export const KYCAlertBanner = () => {
             <AlertDescription>{alertContent.description}</AlertDescription>
           </div>
         </div>
-        {(kycStatus === 'pending' || kycStatus === 'rejected') && (
+        {alertContent.showButton && (
           <Button 
             onClick={() => navigate('/profile/kyc-verification')}
             size="sm"
             variant={kycStatus === 'rejected' ? 'destructive' : 'default'}
           >
-            {kycStatus === 'rejected' ? 'Resubmit KYC' : 'Verify Now'}
+            {alertContent.buttonText}
           </Button>
         )}
       </div>
