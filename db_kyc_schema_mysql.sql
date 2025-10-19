@@ -1,3 +1,9 @@
+SET FOREIGN_KEY_CHECKS=0;
+DROP TRIGGER IF EXISTS update_user_kyc_status;
+DROP TABLE IF EXISTS kyc_documents;
+DROP TABLE IF EXISTS kyc_verifications;
+SET FOREIGN_KEY_CHECKS=1;
+
 -- KYC System Database Schema for TesaPay (MySQL/MariaDB Compatible)
 
 -- Main KYC table
