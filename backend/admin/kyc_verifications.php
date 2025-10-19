@@ -113,14 +113,7 @@ try {
                 ");
                 $stmt->execute([$tier, $comments, $kycId]);
                 
-                // Update user's KYC status
-                $stmt = $pdo->prepare("
-                    UPDATE users u
-                    JOIN kyc_verifications k ON k.user_id = u.id
-                    SET u.kyc_tier = ?, u.kyc_status = 'approved'
-                    WHERE k.id = ?
-                ");
-                $stmt->execute([$tier, $kycId]);
+                // Users table sync omitted; relying on kyc_verifications only
                 
             } elseif ($action === 'reject') {
                 $stmt = $pdo->prepare("
@@ -133,14 +126,7 @@ try {
                 ");
                 $stmt->execute([$rejectionReason, $comments, $kycId]);
                 
-                // Update user's KYC status
-                $stmt = $pdo->prepare("
-                    UPDATE users u
-                    JOIN kyc_verifications k ON k.user_id = u.id
-                    SET u.kyc_status = 'rejected'
-                    WHERE k.id = ?
-                ");
-                $stmt->execute([$kycId]);
+                // Users table sync omitted; relying on kyc_verifications only
             }
             
             $pdo->commit();

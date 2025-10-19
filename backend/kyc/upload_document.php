@@ -22,7 +22,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT u.id FROM users u 
         JOIN user_sessions s ON s.user_id = u.id 
-        WHERE s.session_token = ? AND s.status = 'active'
+        WHERE s.session_token = ? AND s.is_active = 1 AND s.expires_at > NOW()
     ");
     $stmt->execute([$sessionToken]);
     $user = $stmt->fetch();

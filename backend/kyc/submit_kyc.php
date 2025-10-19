@@ -23,7 +23,7 @@ try {
             SELECT u.id, u.email, u.first_name, u.last_name 
             FROM users u 
             JOIN user_sessions s ON s.user_id = u.id 
-            WHERE s.session_token = ? AND s.status = 'active' AND s.expires_at > NOW()
+            WHERE s.session_token = ? AND s.is_active = 1 AND s.expires_at > NOW()
         ");
         $stmt->execute([$sessionToken]);
         $user = $stmt->fetch();
@@ -91,9 +91,7 @@ try {
             ]);
             $kycId = $existingKyc['id'];
             
-            // Update user's KYC status to under_review
-            $stmt = $pdo->prepare("UPDATE users SET kyc_status = 'under_review' WHERE id = ?");
-            $stmt->execute([$userId]);
+            // User KYC status stored in kyc_verifications; no users table update needed
         } else {
             // Create new KYC submission
             $stmt = $pdo->prepare("
@@ -111,9 +109,7 @@ try {
             ]);
             $kycId = $pdo->lastInsertId();
             
-            // Update user's KYC status to under_review
-            $stmt = $pdo->prepare("UPDATE users SET kyc_status = 'under_review' WHERE id = ?");
-            $stmt->execute([$userId]);
+            // User KYC status stored in kyc_verifications; no users table update needed
         }
         
         echo json_encode([
@@ -134,10 +130,10 @@ try {
         }
         
         $stmt = $pdo->prepare("
-            SELECT u.id, u.kyc_tier, u.kyc_status 
+            SELECT u.id 
             FROM users u 
             JOIN user_sessions s ON s.user_id = u.id 
-            WHERE s.session_token = ? AND s.status = 'active'
+            WHERE s.session_token = ? AND s.is_active = 1 AND s.expires_at > NOW()
         ");
         $stmt->execute([$sessionToken]);
         $user = $stmt->fetch();
@@ -166,10 +162,13 @@ try {
             $kyc['documents'] = $documents;
         }
         
+        $kycTier = $kyc ? $kyc['kyc_tier'] : 'tier_0';
+        $kycStatus = $kyc ? $kyc['verification_status'] : 'pending';
+        
         echo json_encode([
             'success' => true,
-            'kyc_tier' => $user['kyc_tier'],
-            'kyc_status' => $user['kyc_status'],
+            'kyc_tier' => $kycTier,
+            'kyc_status' => $kycStatus,
             'kyc_data' => $kyc
         ]);
     }
