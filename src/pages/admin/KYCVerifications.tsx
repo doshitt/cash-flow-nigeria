@@ -280,7 +280,7 @@ export default function KYCVerifications() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(API_BASE + doc.file_url, '_blank')}
+                          onClick={() => window.open(`${API_BASE}/kyc/view_document.php?id=${doc.id}`, '_blank')}
                         >
                           View
                         </Button>
@@ -291,7 +291,7 @@ export default function KYCVerifications() {
               </Card>
 
               {/* Review Actions */}
-              {selectedKYC.verification_status === 'pending' && !reviewAction && (
+              {(selectedKYC.verification_status === 'pending' || selectedKYC.verification_status === 'under_review') && !reviewAction && (
                 <div className="flex gap-3">
                   <Button
                     className="flex-1"
