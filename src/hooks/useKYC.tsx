@@ -130,8 +130,8 @@ export const useKYC = () => {
     needsKYC,
     hasSubmitted,
     isLoading,
-    submitKYC: submitKYC.mutate,
-    uploadDocument: uploadDocument.mutate,
+    submitKYC: submitKYC.mutateAsync,
+    uploadDocument: uploadDocument.mutateAsync,
     canAccessFeature,
     getTransactionLimit,
   };
