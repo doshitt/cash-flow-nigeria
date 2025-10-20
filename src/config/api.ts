@@ -23,6 +23,7 @@ export const API_CONFIG = {
     VERIFY_PIN: '/verify_pin.php',
     UPDATE_PIN: '/update_pin.php',
     ADD_CARD: '/add_card.php',
+    CONVERT_CURRENCY: '/convert_currency.php',
   },
   
   // Request configuration

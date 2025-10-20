@@ -12,14 +12,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { AddMoneyModal } from "@/components/AddMoneyModal";
+import { useAuth } from "@/hooks/useAuth";
+import { ConversionScreen } from "@/components/ConversionScreen";
 
-const currencies = [
-  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸", balance: 50000 },
-  { code: "NGN", name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬", balance: 75000000 },
-  { code: "GBP", name: "British Pound", symbol: "£", flag: "🇬🇧", balance: 35000 },
-  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺", balance: 42000 },
-  { code: "GHS", name: "Ghanaian Cedi", symbol: "₵", flag: "🇬🇭", balance: 125000 }
-];
+const currencyInfo = {
+  USD: { name: "US Dollar", symbol: "$", flag: "🇺🇸" },
+  NGN: { name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬" },
+  GBP: { name: "British Pound", symbol: "£", flag: "🇬🇧" },
+  EUR: { name: "Euro", symbol: "€", flag: "🇪🇺" },
+  GHS: { name: "Ghanaian Cedi", symbol: "₵", flag: "🇬🇭" }
+};
 
 const transactions = [
   {
@@ -53,12 +55,28 @@ const transactions = [
 ];
 
 const Wallet = () => {
-  const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
+  const { user, wallets } = useAuth();
+  const [selectedCurrency, setSelectedCurrency] = useState("NGN");
   const [showAddMoney, setShowAddMoney] = useState(false);
+  const [showConversion, setShowConversion] = useState(false);
 
   const formatBalance = (amount: number) => {
-    return amount.toLocaleString('en-US', { minimumFractionDigits: 0 });
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2 });
   };
+
+  const selectedWallet = wallets?.find(w => w.currency === selectedCurrency);
+  const currentInfo = currencyInfo[selectedCurrency as keyof typeof currencyInfo];
+
+  if (showConversion) {
+    return (
+      <div className="min-h-screen bg-background pb-20 max-w-md mx-auto p-4">
+        <ConversionScreen 
+          onBack={() => setShowConversion(false)} 
+          selectedCurrency={selectedCurrency}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20 max-w-md mx-auto relative">
@@ -100,26 +118,29 @@ const Wallet = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10">
-                <span className="text-sm">{selectedCurrency.flag}</span>
-                <span className="text-sm font-medium">{selectedCurrency.name}</span>
+                <span className="text-sm">{currentInfo?.flag}</span>
+                <span className="text-sm font-medium">{currentInfo?.name}</span>
                 <ChevronDown size={16} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-white border border-gray-200 shadow-lg z-50">
-              {currencies.map((currency) => (
-                <DropdownMenuItem
-                  key={currency.code}
-                  onClick={() => setSelectedCurrency(currency)}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
-                >
-                  <span className="text-lg">{currency.flag}</span>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{currency.name}</div>
-                    <div className="text-xs text-gray-500">{currency.symbol}{currency.balance.toLocaleString()}</div>
-                  </div>
-                  <span className="text-xs text-gray-400">{currency.code}</span>
-                </DropdownMenuItem>
-              ))}
+              {wallets?.map((wallet) => {
+                const info = currencyInfo[wallet.currency as keyof typeof currencyInfo];
+                return (
+                  <DropdownMenuItem
+                    key={wallet.id}
+                    onClick={() => setSelectedCurrency(wallet.currency)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                  >
+                    <span className="text-lg">{info?.flag}</span>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{info?.name}</div>
+                      <div className="text-xs text-gray-500">{info?.symbol}{Number(wallet.balance).toLocaleString()}</div>
+                    </div>
+                    <span className="text-xs text-gray-400">{wallet.currency}</span>
+                  </DropdownMenuItem>
+                );
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -127,7 +148,7 @@ const Wallet = () => {
         {/* Balance Display */}
         <div className="text-center mb-8">
           <div className="text-4xl font-bold mb-2">
-            {selectedCurrency.symbol}{formatBalance(selectedCurrency.balance)}
+            {currentInfo?.symbol}{formatBalance(Number(selectedWallet?.balance || "0"))}
           </div>
           <div className="text-white/80 text-sm">
             Available Balance
@@ -139,6 +160,7 @@ const Wallet = () => {
           <Button 
             variant="secondary" 
             className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm"
+            onClick={() => setShowConversion(true)}
           >
             Convert
           </Button>
@@ -195,7 +217,7 @@ const Wallet = () => {
       <AddMoneyModal 
         open={showAddMoney} 
         onOpenChange={setShowAddMoney}
-        selectedCurrency={selectedCurrency.code}
+        selectedCurrency={selectedCurrency}
       />
 
       <BottomNavigation />
