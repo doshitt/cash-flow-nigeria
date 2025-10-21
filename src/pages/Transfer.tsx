@@ -6,10 +6,12 @@ import { useNavigate } from "react-router-dom";
 import { SendToTesapayUser } from "@/components/SendToTesapayUser";
 import { SendToNigeriaBank } from "@/components/SendToNigeriaBank";
 import { SendToInternationalBank } from "@/components/SendToInternationalBank";
+import { SendViaMOMO } from "@/components/SendViaMOMO";
+import { SendViaCrypto } from "@/components/SendViaCrypto";
 import { TransferConfirmation } from "@/components/TransferConfirmation";
 import { useFeatures } from "@/hooks/useFeatures";
 
-export type TransferType = 'tesapay' | 'nigeria' | 'international' | null;
+export type TransferType = 'tesapay' | 'nigeria' | 'international' | 'momo' | 'crypto' | null;
 
 export interface TransferData {
   type: TransferType;
@@ -49,6 +51,10 @@ const Transfer = () => {
         return <SendToNigeriaBank onSubmit={handleTransferSubmit} onBack={handleBack} />;
       case 'international':
         return <SendToInternationalBank onSubmit={handleTransferSubmit} onBack={handleBack} />;
+      case 'momo':
+        return <SendViaMOMO onSubmit={handleTransferSubmit} onBack={handleBack} />;
+      case 'crypto':
+        return <SendViaCrypto onSubmit={handleTransferSubmit} onBack={handleBack} />;
       default:
         return null;
     }
@@ -127,6 +133,24 @@ const Transfer = () => {
             </div>
           </Card>
         )}
+
+        <Card 
+          className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setSelectedType('momo')}
+        >
+          <div className="text-center">
+            <h3 className="text-lg font-medium">Send via MOMO (Ghana)</h3>
+          </div>
+        </Card>
+
+        <Card 
+          className="p-6 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setSelectedType('crypto')}
+        >
+          <div className="text-center">
+            <h3 className="text-lg font-medium">Send via Crypto</h3>
+          </div>
+        </Card>
       </div>
     </div>
   );

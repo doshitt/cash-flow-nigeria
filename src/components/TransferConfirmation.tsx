@@ -48,6 +48,10 @@ export const TransferConfirmation = ({ transferData, onBack, onSuccess }: Transf
         return `${transferData.recipientInfo.bankName} Account`;
       case 'international':
         return transferData.recipientInfo.accountName;
+      case 'momo':
+        return transferData.recipientInfo.momoName;
+      case 'crypto':
+        return `${transferData.recipientInfo.cryptoType} Wallet`;
       default:
         return 'Recipient';
     }
@@ -66,7 +70,12 @@ export const TransferConfirmation = ({ transferData, onBack, onSuccess }: Transf
 
     setIsLoading(true);
     try {
-      const response = await fetch(getApiUrl('/transfers.php'), {
+      // Route to correct endpoint based on transfer type
+      const endpoint = (transferData.type === 'momo' || transferData.type === 'crypto')
+        ? '/payment_requests.php'
+        : '/transfers.php';
+
+      const response = await fetch(getApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,21 +94,25 @@ export const TransferConfirmation = ({ transferData, onBack, onSuccess }: Transf
       const result = await response.json();
 
       if (result.success) {
+        const successMessage = (transferData.type === 'momo' || transferData.type === 'crypto')
+          ? "Request submitted for admin approval. You'll be notified once processed."
+          : "Your money has been sent successfully!";
+        
         toast({
-          title: "Transfer Successful",
-          description: "Your money has been sent successfully!",
+          title: "Success",
+          description: successMessage,
         });
         onSuccess();
       } else {
         toast({
-          title: "Transfer Failed",
+          title: "Failed",
           description: result.message || "Failed to process transfer",
           variant: "destructive"
         });
       }
     } catch (error) {
       toast({
-        title: "Transfer Failed",
+        title: "Error",
         description: "Network error. Please try again.",
         variant: "destructive"
       });
