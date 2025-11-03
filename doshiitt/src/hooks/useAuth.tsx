@@ -21,11 +21,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Mock user data for development
 const MOCK_USER: User = {
   id: 1,
-  email: 'john.doe@tesapay.com',
-  first_name: 'John',
-  last_name: 'Doe',
+  email: 'admin@tesapay.com',
+  first_name: 'Admin',
+  last_name: 'User',
   phone: '+2348123456789',
-  full_name: 'John Doe'
+  full_name: 'Admin User'
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -33,13 +33,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Auto-login with mock user for development
-    const savedUser = localStorage.getItem('tesapay_user');
+    const savedUser = localStorage.getItem('admin_user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     } else {
       // Auto-login with mock user
       setUser(MOCK_USER);
-      localStorage.setItem('tesapay_user', JSON.stringify(MOCK_USER));
+      localStorage.setItem('admin_user', JSON.stringify(MOCK_USER));
     }
   }, []);
 
@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Mock login - in real app, this would call your auth API
     if (email && password) {
       setUser(MOCK_USER);
-      localStorage.setItem('tesapay_user', JSON.stringify(MOCK_USER));
+      localStorage.setItem('admin_user', JSON.stringify(MOCK_USER));
     } else {
       throw new Error('Invalid credentials');
     }
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('tesapay_user');
+    localStorage.removeItem('admin_user');
   };
 
   return (

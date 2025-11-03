@@ -46,9 +46,11 @@ try {
     $recentStmt = $pdo->query("
         SELECT 
             t.id,
+            t.transaction_id,
             t.amount,
-            t.type,
+            t.transaction_type,
             t.status,
+            t.currency,
             u.first_name,
             u.last_name,
             t.created_at

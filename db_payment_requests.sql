@@ -32,16 +32,16 @@ CREATE TABLE IF NOT EXISTS exchange_rates (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Insert default exchange rates
-INSERT INTO exchange_rates (from_currency, to_currency, rate, fee_percentage) VALUES
-('NGN', 'USD', 0.0013, 1.5),
-('USD', 'NGN', 750.00, 1.5),
-('NGN', 'GBP', 0.0011, 1.5),
-('GBP', 'NGN', 920.00, 1.5),
-('NGN', 'EUR', 0.0012, 1.5),
-('EUR', 'NGN', 810.00, 1.5),
-('NGN', 'GHS', 0.015, 1.5),
-('GHS', 'NGN', 65.00, 1.5),
-('USD', 'GHS', 12.00, 1.5),
-('GHS', 'USD', 0.083, 1.5)
-ON DUPLICATE KEY UPDATE rate=VALUES(rate);
+-- Insert default exchange rates (only if table is empty)
+INSERT INTO exchange_rates (from_currency, to_currency, rate, status) VALUES
+('NGN', 'USD', 0.0013, 'active'),
+('USD', 'NGN', 750.00, 'active'),
+('NGN', 'GBP', 0.0011, 'active'),
+('GBP', 'NGN', 920.00, 'active'),
+('NGN', 'EUR', 0.0012, 'active'),
+('EUR', 'NGN', 810.00, 'active'),
+('NGN', 'GHS', 0.015, 'active'),
+('GHS', 'NGN', 65.00, 'active'),
+('USD', 'GHS', 12.00, 'active'),
+('GHS', 'USD', 0.083, 'active')
+ON DUPLICATE KEY UPDATE rate=VALUES(rate), status=VALUES(status);

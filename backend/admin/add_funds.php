@@ -44,14 +44,13 @@ try {
             $transactionId = 'TXN' . time() . rand(1000, 9999);
             $stmt = $pdo->prepare("
                 INSERT INTO transactions (
-                    transaction_id, user_id, wallet_id, transaction_type, 
+                    transaction_id, user_id, transaction_type, 
                     amount, currency, status, description, created_at
-                ) VALUES (?, ?, ?, 'credit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)
+                ) VALUES (?, ?, 'deposit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)
             ");
             $stmt->execute([
                 $transactionId, 
                 $userId, 
-                $wallet['id'], 
                 $amount, 
                 $currency,
                 "Admin Fund Addition: " . $adminNote
