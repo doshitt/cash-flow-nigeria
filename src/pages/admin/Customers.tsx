@@ -282,11 +282,11 @@ export default function Customers() {
                       <div className="flex items-center space-x-3">
                         <Avatar>
                           <AvatarFallback>
-                            {customer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            {customer.name ? customer.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium">{customer.name}</div>
+                          <div className="font-medium">{customer.name || 'Unknown'}</div>
                           <div className="text-sm text-muted-foreground">{customer.id}</div>
                         </div>
                       </div>
