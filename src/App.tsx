@@ -13,6 +13,9 @@ import Profile from "./pages/Profile";
 import Wallet from "./pages/Wallet";
 import Savings from "./pages/Savings";
 import Airtime from "./pages/Airtime";
+import Data from "./pages/Data";
+import Electricity from "./pages/Electricity";
+import TV from "./pages/TV";
 import { Vouchers } from "./pages/Vouchers";
 import ReferAndEarn from "./pages/ReferAndEarn";
 import RecentTransactions from "./pages/RecentTransactions";
@@ -65,6 +68,9 @@ const App = () => (
           <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
           <Route path="/savings" element={<ProtectedRoute><Savings /></ProtectedRoute>} />
           <Route path="/airtime" element={<ProtectedRoute><Airtime /></ProtectedRoute>} />
+          <Route path="/data" element={<ProtectedRoute><Data /></ProtectedRoute>} />
+          <Route path="/electricity" element={<ProtectedRoute><Electricity /></ProtectedRoute>} />
+          <Route path="/tv" element={<ProtectedRoute><TV /></ProtectedRoute>} />
           <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
           <Route path="/refer-and-earn" element={<ProtectedRoute><ReferAndEarn /></ProtectedRoute>} />
           <Route path="/recent-transactions" element={<ProtectedRoute><RecentTransactions /></ProtectedRoute>} />

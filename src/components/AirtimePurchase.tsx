@@ -22,9 +22,13 @@ export const AirtimePurchase = ({ onBack, onConfirm }: AirtimePurchaseProps) => 
 
   const handleBuy = () => {
     if (phoneNumber && amount) {
+      const amountValue = parseInt(amount);
+      if (amountValue < 100) {
+        return; // Minimum amount validation
+      }
       onConfirm({
         phoneNumber,
-        amount: parseInt(amount)
+        amount: amountValue
       });
     }
   };

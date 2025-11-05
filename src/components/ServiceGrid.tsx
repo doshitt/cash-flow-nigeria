@@ -42,10 +42,15 @@ export const ServiceGrid = () => {
   const handleServiceClick = (service: ServiceItem) => {
     if (service.label === "Airtime") {
       navigate("/airtime");
+    } else if (service.label === "Data") {
+      navigate("/data");
+    } else if (service.label === "Electricity") {
+      navigate("/electricity");
+    } else if (service.label === "TV") {
+      navigate("/tv");
     } else if (service.label === "Recent Transactions") {
       navigate("/recent-transactions");
     }
-    // Add more service navigation here as needed
   };
 
   // Filter services based on feature toggles

@@ -42,28 +42,62 @@ export default function Airtime() {
     if (!purchaseData) return;
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
+      
+      // Determine network from phone prefix
+      const phonePrefix = purchaseData.phoneNumber.substring(0, 4);
+      let networkSlug = 'MTN-VTU';
+      if (phonePrefix.startsWith('070') || phonePrefix.startsWith('080') || phonePrefix.startsWith('090')) {
+        networkSlug = 'GLO-VTU';
+      } else if (phonePrefix.startsWith('080') || phonePrefix.startsWith('081')) {
+        networkSlug = 'AIRTEL-VTU';
+      } else if (phonePrefix.startsWith('080') || phonePrefix.startsWith('081')) {
+        networkSlug = '9MOBILE-VTU';
+      }
 
-      // Create transaction data
-      const now = new Date();
-      const transaction: TransactionData = {
-        phoneNumber: purchaseData.phoneNumber,
-        amount: purchaseData.amount,
-        date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-        status: "Successful",
-        operator: "Glo", // You can determine this based on phone number prefix
-        transactionId: `TX${Date.now().toString().slice(-8)}`
-      };
-
-      setTransactionData(transaction);
-      setCurrentStep("success");
-
-      toast({
-        title: "Payment Successful",
-        description: `Airtime of ₦${purchaseData.amount} sent to ${purchaseData.phoneNumber}`,
+      const response = await fetch(`${window.location.origin}/backend/coralpay/vend.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          customerId: purchaseData.phoneNumber,
+          packageSlug: networkSlug,
+          amount: purchaseData.amount,
+          customerName: `${user.first_name} ${user.last_name}`,
+          phoneNumber: user.phone,
+          email: user.email,
+          billerType: 'airtime'
+        })
       });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const now = new Date();
+        const transaction: TransactionData = {
+          phoneNumber: purchaseData.phoneNumber,
+          amount: purchaseData.amount,
+          date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+          time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          status: "Successful",
+          operator: networkSlug.replace('-VTU', ''),
+          transactionId: result.data.transaction_id
+        };
+
+        setTransactionData(transaction);
+        setCurrentStep("success");
+
+        toast({
+          title: "Payment Successful",
+          description: `Airtime of ₦${purchaseData.amount} sent to ${purchaseData.phoneNumber}`,
+        });
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: result.message || "Please try again",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Payment Failed",

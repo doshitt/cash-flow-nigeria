@@ -1,0 +1,167 @@
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+require_once '../config/database.php';
+require_once 'config.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    exit();
+}
+
+try {
+    $pdo = new PDO($dsn, $username, $password, $options);
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    $userId = $input['user_id'] ?? null;
+    $customerId = $input['customerId'] ?? null;
+    $packageSlug = $input['packageSlug'] ?? null;
+    $amount = $input['amount'] ?? null;
+    $customerName = $input['customerName'] ?? null;
+    $phoneNumber = $input['phoneNumber'] ?? null;
+    $email = $input['email'] ?? null;
+    $billerType = $input['billerType'] ?? null; // airtime, data, electricity, tv
+    
+    if (!$userId || !$customerId || !$packageSlug || !$amount) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Missing required fields'
+        ]);
+        exit();
+    }
+    
+    // Check user wallet balance
+    $stmt = $pdo->prepare("SELECT balance FROM wallets WHERE user_id = ? AND currency = 'NGN' AND is_active = 1");
+    $stmt->execute([$userId]);
+    $wallet = $stmt->fetch();
+    
+    if (!$wallet || $wallet['balance'] < $amount) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Insufficient wallet balance'
+        ]);
+        exit();
+    }
+    
+    // Generate payment reference
+    $paymentReference = 'TESA' . time() . rand(1000, 9999);
+    
+    // Prepare vend request
+    $vendData = [
+        'paymentReference' => $paymentReference,
+        'customerId' => $customerId,
+        'packageSlug' => $packageSlug,
+        'channel' => 'WEB',
+        'amount' => floatval($amount),
+        'customerName' => $customerName,
+        'phoneNumber' => $phoneNumber,
+        'email' => $email
+    ];
+    
+    // Deduct from wallet first
+    $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");
+    $stmt->execute([$amount, $userId]);
+    
+    // Make vend request to CoralPay
+    $result = CoralPayConfig::makeRequest('/transactions/process-payment', 'POST', $vendData);
+    
+    $transactionId = generateId('TXN');
+    $status = 'pending';
+    $coralPayResponse = json_encode($result['data'] ?? []);
+    
+    if ($result['success'] && isset($result['data']['responseCode']) && $result['data']['responseCode'] === '00') {
+        $status = 'completed';
+        $responseMessage = $result['data']['message'] ?? 'Transaction successful';
+    } else {
+        // Refund wallet if vend failed
+        $stmt = $pdo->prepare("UPDATE wallets SET balance = balance + ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");
+        $stmt->execute([$amount, $userId]);
+        
+        $status = 'failed';
+        $responseMessage = $result['data']['message'] ?? 'Transaction failed';
+    }
+    
+    // Log transaction
+    $stmt = $pdo->prepare("
+        INSERT INTO transactions (
+            transaction_id, user_id, amount, currency, transaction_type, 
+            status, description, created_at, metadata
+        ) VALUES (?, ?, ?, 'NGN', ?, ?, ?, NOW(), ?)
+    ");
+    
+    $description = ucfirst($billerType) . ' - ' . $customerId;
+    $metadata = json_encode([
+        'biller_type' => $billerType,
+        'customer_id' => $customerId,
+        'package_slug' => $packageSlug,
+        'payment_reference' => $paymentReference,
+        'coralpay_response' => $result['data'] ?? []
+    ]);
+    
+    $stmt->execute([
+        $transactionId,
+        $userId,
+        $amount,
+        $billerType . '_purchase',
+        $status,
+        $description,
+        $metadata
+    ]);
+    
+    // Store CoralPay transaction
+    $stmt = $pdo->prepare("
+        INSERT INTO coralpay_transactions (
+            transaction_id, user_id, biller_type, customer_id, package_slug,
+            amount, payment_reference, status, coralpay_response, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+    ");
+    
+    $stmt->execute([
+        $transactionId,
+        $userId,
+        $billerType,
+        $customerId,
+        $packageSlug,
+        $amount,
+        $paymentReference,
+        $status,
+        $coralPayResponse
+    ]);
+    
+    if ($status === 'completed') {
+        echo json_encode([
+            'success' => true,
+            'message' => $responseMessage,
+            'data' => [
+                'transaction_id' => $transactionId,
+                'payment_reference' => $paymentReference,
+                'status' => $status,
+                'token' => $result['data']['responseData']['token'] ?? null,
+                'customer_name' => $result['data']['responseData']['customerName'] ?? $customerName
+            ]
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => $responseMessage,
+            'transaction_id' => $transactionId
+        ]);
+    }
+    
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Server error: ' . $e->getMessage()
+    ]);
+}
+?>
