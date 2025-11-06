@@ -48,6 +48,8 @@ export const ServiceGrid = () => {
       navigate("/electricity");
     } else if (service.label === "TV") {
       navigate("/tv");
+    } else if (service.label === "Betting") {
+      navigate("/betting");
     } else if (service.label === "Recent Transactions") {
       navigate("/recent-transactions");
     }

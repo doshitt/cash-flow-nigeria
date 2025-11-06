@@ -17,6 +17,7 @@ import Cards from "@/pages/Cards";
 import Notifications from "@/pages/Notifications";
 import BannerAds from "@/pages/BannerAds";
 import Team from "@/pages/Team";
+import CoralPayTransactions from "@/pages/CoralPayTransactions";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="banner-ads" element={<BannerAds />} />
                 <Route path="team" element={<Team />} />
+                <Route path="coralpay-transactions" element={<CoralPayTransactions />} />
               </Route>
             </Routes>
           </div>

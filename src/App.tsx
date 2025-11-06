@@ -16,6 +16,7 @@ import Airtime from "./pages/Airtime";
 import Data from "./pages/Data";
 import Electricity from "./pages/Electricity";
 import TV from "./pages/TV";
+import Betting from "./pages/Betting";
 import { Vouchers } from "./pages/Vouchers";
 import ReferAndEarn from "./pages/ReferAndEarn";
 import RecentTransactions from "./pages/RecentTransactions";
@@ -42,6 +43,7 @@ import AdminBannerAds from "./pages/admin/BannerAds";
 import AdminTeam from "./pages/admin/Team";
 import AdminFeatures from "./pages/admin/Features";
 import AdminKYCVerifications from "./pages/admin/KYCVerifications";
+import AdminCoralPayTransactions from "./pages/admin/CoralPayTransactions";
 import KYCVerification from "./pages/KYCVerification";
 
 const queryClient = new QueryClient();
@@ -71,6 +73,7 @@ const App = () => (
           <Route path="/data" element={<ProtectedRoute><Data /></ProtectedRoute>} />
           <Route path="/electricity" element={<ProtectedRoute><Electricity /></ProtectedRoute>} />
           <Route path="/tv" element={<ProtectedRoute><TV /></ProtectedRoute>} />
+          <Route path="/betting" element={<ProtectedRoute><Betting /></ProtectedRoute>} />
           <Route path="/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
           <Route path="/refer-and-earn" element={<ProtectedRoute><ReferAndEarn /></ProtectedRoute>} />
           <Route path="/recent-transactions" element={<ProtectedRoute><RecentTransactions /></ProtectedRoute>} />
@@ -107,6 +110,7 @@ const App = () => (
             <Route path="team" element={<AdminTeam />} />
             <Route path="features" element={<AdminFeatures />} />
             <Route path="kyc-verifications" element={<AdminKYCVerifications />} />
+            <Route path="coralpay-transactions" element={<AdminCoralPayTransactions />} />
           </Route>
           
           {/* Catch-all route */}

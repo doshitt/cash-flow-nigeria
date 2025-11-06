@@ -1,96 +1,182 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Download, CheckCircle, Share2 } from "lucide-react";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import { useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TransactionReceiptProps {
-  onBack: () => void;
-  transactionData: {
-    amount: number;
-    phoneNumber: string;
-    date: string;
-    time: string;
-    status: string;
-    operator: string;
-    transactionId: string;
-  };
+  transactionId: string;
+  amount: string;
+  type: string;
+  status: string;
+  date: string;
+  recipient?: string;
+  customerId?: string;
+  token?: string;
+  packageName?: string;
 }
 
-export const TransactionReceipt = ({ onBack, transactionData }: TransactionReceiptProps) => {
-  const handleShare = () => {
-    // Implement sharing functionality
-    if (navigator.share) {
-      navigator.share({
-        title: 'Transaction Receipt',
-        text: `Airtime purchase of ₦${transactionData.amount} to ${transactionData.phoneNumber}`,
+export default function TransactionReceipt({
+  transactionId,
+  amount,
+  type,
+  status,
+  date,
+  recipient,
+  customerId,
+  token,
+  packageName
+}: TransactionReceiptProps) {
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const downloadPDF = async () => {
+    if (!receiptRef.current) return;
+
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`TesaPay_Receipt_${transactionId}.pdf`);
+
+      toast({
+        title: "Success",
+        description: "Receipt downloaded successfully"
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download receipt",
+        variant: "destructive"
       });
     }
   };
 
+  const shareReceipt = async () => {
+    const shareData = {
+      title: 'TesaPay Receipt',
+      text: `Transaction ${transactionId}\nAmount: ${amount}\nType: ${type}\nStatus: ${status}`,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(
+          `TesaPay Transaction Receipt\n\nTransaction ID: ${transactionId}\nAmount: ${amount}\nType: ${type}\nStatus: ${status}\nDate: ${date}`
+        );
+        toast({
+          title: "Copied",
+          description: "Receipt details copied to clipboard"
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-8">
-        {/* Illustration placeholder */}
-        <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center">
-          <div className="text-2xl">📱</div>
-        </div>
+    <div className="space-y-4">
+      <Card ref={receiptRef} className="bg-white">
+        <CardHeader className="text-center border-b">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-green-100 rounded-full">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl">Transaction Successful</CardTitle>
+          <p className="text-muted-foreground">Your transaction was completed successfully</p>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-6">
+          <div className="text-center pb-6 border-b">
+            <p className="text-sm text-muted-foreground mb-1">Amount</p>
+            <p className="text-4xl font-bold text-green-600">{amount}</p>
+          </div>
 
-        <Card className="w-full max-w-sm bg-card p-6 space-y-4">
-          <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              Transaction Receipt
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                {transactionData.date} {transactionData.time}
-              </span>
-              <div className="w-8 h-6 bg-destructive rounded flex items-center justify-center">
-                <span className="text-xs text-destructive-foreground font-bold">T</span>
+          <div className="space-y-4">
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Transaction ID</span>
+              <span className="font-mono text-sm">{transactionId}</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Type</span>
+              <span className="font-medium capitalize">{type}</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Status</span>
+              <span className="font-medium capitalize text-green-600">{status}</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-muted-foreground">Date & Time</span>
+              <span>{new Date(date).toLocaleString()}</span>
+            </div>
+
+            {recipient && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-muted-foreground">Recipient</span>
+                <span className="font-medium">{recipient}</span>
               </div>
-            </div>
+            )}
+
+            {customerId && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-muted-foreground">Customer ID</span>
+                <span className="font-mono text-sm">{customerId}</span>
+              </div>
+            )}
+
+            {packageName && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-muted-foreground">Package</span>
+                <span className="font-medium">{packageName}</span>
+              </div>
+            )}
+
+            {token && (
+              <div className="py-2 border-b">
+                <p className="text-muted-foreground mb-2">Token</p>
+                <p className="font-mono text-sm bg-gray-100 p-3 rounded break-all">{token}</p>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="font-semibold text-foreground">Amount:</span>
-              <span className="text-foreground">₦ {transactionData.amount}.00</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="font-semibold text-foreground">Status:</span>
-              <span className="text-foreground">{transactionData.status}</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="font-semibold text-foreground">Operators:</span>
-              <span className="text-foreground">{transactionData.operator}</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="font-semibold text-foreground">Number:</span>
-              <span className="text-foreground">{transactionData.phoneNumber}</span>
-            </div>
+          <div className="pt-4 text-center text-xs text-muted-foreground">
+            <p>Thank you for using TesaPay</p>
+            <p className="mt-1">For support, contact: support@tesapay.com</p>
           </div>
+        </CardContent>
+      </Card>
 
-          <Button
-            onClick={handleShare}
-            className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground h-12 text-base font-semibold mt-6"
-          >
-            Share Receipt
-          </Button>
-        </Card>
-
-        <div className="text-center space-y-1">
-          <p className="text-sm font-medium text-foreground">Support</p>
-          <p className="text-sm text-destructive">Support@tesapay.com</p>
-        </div>
-
-        <Button
-          onClick={onBack}
-          variant="ghost"
-          className="mt-4"
-        >
-          Back to Home
+      <div className="flex gap-2">
+        <Button onClick={downloadPDF} className="flex-1">
+          <Download className="mr-2 h-4 w-4" />
+          Download PDF
+        </Button>
+        <Button onClick={shareReceipt} variant="outline" className="flex-1">
+          <Share2 className="mr-2 h-4 w-4" />
+          Share
         </Button>
       </div>
     </div>
   );
-};
+}

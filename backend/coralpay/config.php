@@ -6,7 +6,7 @@ class CoralPayConfig {
     const PASSWORD = 'your_coralpay_password';
     
     // API URLs
-    const TEST_BASE_URL = 'https://testdev.coralpay.com/vas/api';
+    const TEST_BASE_URL = 'http://sandbox1.coralpay.com:8080/coralpay-vas/api';
     const PROD_BASE_URL = 'https://coralpay.com/vas/api'; // Will be provided in production
     
     // Use test mode by default
