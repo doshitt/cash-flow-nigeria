@@ -40,6 +40,7 @@ const menuItems = [
   { title: "Cards", url: "/cards", icon: CreditCard },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Banner Ads", url: "/banner-ads", icon: Image },
+  { title: "CoralPay Transactions", url: "/coralpay-transactions", icon: BarChart3 },
   { title: "Team", url: "/team", icon: UserCog },
 ];
 

@@ -6,7 +6,7 @@ class CoralPayConfig {
     const PASSWORD = 'Tesapay113#';
     
     // API URLs
-    const TEST_BASE_URL = 'http://sandbox1.coralpay.com:8080/coralpay-vas/api';
+    const TEST_BASE_URL = 'https://sandbox1.coralpay.com/coralpay-vas/api';
     const PROD_BASE_URL = 'https://coralpay.com/vas/api'; // Will be provided in production
     
     // Use test mode by default
@@ -27,11 +27,15 @@ class CoralPayConfig {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         
         $headers = [
             'Authorization: ' . self::getAuthHeader(),
-            'Content-Type: application/json'
+            'Content-Type: application/json',
+            'Accept: application/json'
         ];
         
         if ($method === 'POST') {

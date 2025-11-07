@@ -90,16 +90,18 @@ try {
         $responseMessage = $result['data']['message'] ?? 'Transaction failed';
     }
     
-    // Log transaction
+    // Log transaction (align with current schema - no `metadata` column)
+    $transactionType = in_array($billerType, ['airtime','data']) ? $billerType : 'bills';
+
     $stmt = $pdo->prepare("
         INSERT INTO transactions (
-            transaction_id, user_id, amount, currency, transaction_type, 
-            status, description, created_at, metadata
-        ) VALUES (?, ?, ?, 'NGN', ?, ?, ?, NOW(), ?)
+            transaction_id, user_id, transaction_type, amount, currency,
+            description, status, recipient_info, created_at
+        ) VALUES (?, ?, ?, ?, 'NGN', ?, ?, ?, NOW())
     ");
     
     $description = ucfirst($billerType) . ' - ' . $customerId;
-    $metadata = json_encode([
+    $recipientInfo = json_encode([
         'biller_type' => $billerType,
         'customer_id' => $customerId,
         'package_slug' => $packageSlug,
@@ -110,11 +112,11 @@ try {
     $stmt->execute([
         $transactionId,
         $userId,
+        $transactionType,
         $amount,
-        $billerType . '_purchase',
-        $status,
         $description,
-        $metadata
+        $status,
+        $recipientInfo
     ]);
     
     // Store CoralPay transaction

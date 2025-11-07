@@ -151,7 +151,7 @@ export default function Data() {
               <SelectTrigger>
                 <SelectValue placeholder="Choose network provider" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-50">
                 {networks.map(network => (
                   <SelectItem key={network.value} value={network.value}>
                     {network.label}
@@ -181,7 +181,10 @@ export default function Data() {
               <SelectTrigger>
                 <SelectValue placeholder={loading ? "Loading packages..." : "Choose data bundle"} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-50">
+                {packages.length === 0 && !loading && (
+                  <SelectItem value="-" disabled>No packages available</SelectItem>
+                )}
                 {packages.map(pkg => (
                   <SelectItem key={pkg.slug} value={pkg.slug}>
                     {pkg.name} - ₦{pkg.amount.toLocaleString()}
