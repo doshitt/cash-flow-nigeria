@@ -1,13 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AirtimePurchase } from "@/components/AirtimePurchase";
-import { AirtimeConfirmation } from "@/components/AirtimeConfirmation";
-import { TransactionSuccess } from "@/components/TransactionSuccess";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, Bell } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import TransactionReceipt from "@/components/TransactionReceipt";
+import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { toast } from "@/hooks/use-toast";
 import { useFeatures } from "@/hooks/useFeatures";
+import { getApiUrl } from "@/config/api";
 
-type AirtimeStep = "purchase" | "confirmation" | "success" | "receipt";
+interface AirtimePackage {
+  id: number;
+  name: string;
+  slug: string;
+  amount: number;
+  billerId: number;
+}
 
 interface TransactionData {
   phoneNumber: string;
@@ -19,50 +30,97 @@ interface TransactionData {
   transactionId: string;
 }
 
+type AirtimeStep = "purchase" | "success" | "receipt";
+
 export default function Airtime() {
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatures();
   const [currentStep, setCurrentStep] = useState<AirtimeStep>("purchase");
-  const [purchaseData, setPurchaseData] = useState<{ phoneNumber: string; amount: number } | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [selectedNetwork, setSelectedNetwork] = useState("");
+  const [amount, setAmount] = useState("");
+  const [packages, setPackages] = useState<AirtimePackage[]>([]);
+  const [loading, setLoading] = useState(false);
   const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
 
-  // Redirect if feature is disabled
+  const networks = [
+    { value: "MTN-VTU", label: "MTN" },
+    { value: "AIRTEL-VTU", label: "Airtel" },
+    { value: "GLO-VTU", label: "Glo" },
+    { value: "9MOBILE-VTU", label: "9Mobile" }
+  ];
+
+  const predefinedAmounts = [100, 200, 500, 1000, 2000, 5000];
+
   useEffect(() => {
     if (!isFeatureEnabled('airtime')) {
       navigate('/');
     }
   }, [isFeatureEnabled, navigate]);
 
-  const handlePurchaseConfirm = (data: { phoneNumber: string; amount: number }) => {
-    setPurchaseData(data);
-    setCurrentStep("confirmation");
+  useEffect(() => {
+    if (selectedNetwork) {
+      fetchAirtimePackages(selectedNetwork);
+    }
+  }, [selectedNetwork]);
+
+  const fetchAirtimePackages = async (billerSlug: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${getApiUrl('')}/coralpay/billers.php?action=packages&billerSlug=${billerSlug}`
+      );
+      const result = await response.json();
+      
+      if (result.success && result.data?.responseData) {
+        setPackages(result.data.responseData);
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleConfirmAndPay = async () => {
-    if (!purchaseData) return;
+  const handlePurchase = async () => {
+    if (!phoneNumber || !selectedNetwork || !amount) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill all fields",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    const amountValue = parseInt(amount);
+    if (amountValue < 100) {
+      toast({
+        title: "Validation Error",
+        description: "Minimum amount is ₦100",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
       
-      // Determine network from phone prefix
-      const phonePrefix = purchaseData.phoneNumber.substring(0, 4);
-      let networkSlug = 'MTN-VTU';
-      if (phonePrefix.startsWith('070') || phonePrefix.startsWith('080') || phonePrefix.startsWith('090')) {
-        networkSlug = 'GLO-VTU';
-      } else if (phonePrefix.startsWith('080') || phonePrefix.startsWith('081')) {
-        networkSlug = 'AIRTEL-VTU';
-      } else if (phonePrefix.startsWith('080') || phonePrefix.startsWith('081')) {
-        networkSlug = '9MOBILE-VTU';
+      // Find package closest to amount or use network slug for custom amount
+      let packageSlug = selectedNetwork;
+      const matchingPackage = packages.find(p => p.amount === amountValue);
+      if (matchingPackage) {
+        packageSlug = matchingPackage.slug;
       }
 
-      const response = await fetch(`${window.location.origin}/backend/coralpay/vend.php`, {
+      const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user.id,
-          customerId: purchaseData.phoneNumber,
-          packageSlug: networkSlug,
-          amount: purchaseData.amount,
+          customerId: phoneNumber,
+          packageSlug: packageSlug,
+          amount: amountValue,
           customerName: `${user.first_name} ${user.last_name}`,
           phoneNumber: user.phone,
           email: user.email,
@@ -75,12 +133,12 @@ export default function Airtime() {
       if (result.success) {
         const now = new Date();
         const transaction: TransactionData = {
-          phoneNumber: purchaseData.phoneNumber,
-          amount: purchaseData.amount,
+          phoneNumber: phoneNumber,
+          amount: amountValue,
           date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
           time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           status: "Successful",
-          operator: networkSlug.replace('-VTU', ''),
+          operator: selectedNetwork.replace('-VTU', ''),
           transactionId: result.data.transaction_id
         };
 
@@ -89,30 +147,28 @@ export default function Airtime() {
 
         toast({
           title: "Payment Successful",
-          description: `Airtime of ₦${purchaseData.amount} sent to ${purchaseData.phoneNumber}`,
+          description: `Airtime of ₦${amountValue} sent to ${phoneNumber}`,
         });
       } else {
         toast({
-          title: "Payment Failed",
+          title: "Transaction Failed",
           description: result.message || "Please try again",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error) {
       toast({
-        title: "Payment Failed",
-        description: "Please try again",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to process transaction",
+        variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleBack = () => {
-    if (currentStep === "confirmation") {
-      setCurrentStep("purchase");
-    } else {
-      navigate("/");
-    }
+  const handleAmountSelect = (selectedAmount: number) => {
+    setAmount(selectedAmount.toString());
   };
 
   const handleDone = () => {
@@ -127,32 +183,100 @@ export default function Airtime() {
     navigate("/");
   };
 
-  switch (currentStep) {
-    case "purchase":
-      return <AirtimePurchase onBack={handleBack} onConfirm={handlePurchaseConfirm} />;
-    
-    case "confirmation":
-      return (
-        <AirtimeConfirmation
-          onBack={handleBack}
-          onConfirm={handleConfirmAndPay}
-          phoneNumber={purchaseData?.phoneNumber || ""}
-          amount={purchaseData?.amount || 0}
-        />
-      );
-    
-    case "success":
-      return <TransactionSuccess onDone={handleDone} onShowReceipt={handleShowReceipt} />;
-    
-    case "receipt":
-      return (
-        <TransactionReceipt
-          onBack={handleReceiptBack}
-          transactionData={transactionData!}
-        />
-      );
-    
-    default:
-      return <AirtimePurchase onBack={handleBack} onConfirm={handlePurchaseConfirm} />;
+  if (currentStep === "success") {
+    return <TransactionSuccess onDone={handleDone} onShowReceipt={handleShowReceipt} />;
   }
+
+  if (currentStep === "receipt" && transactionData) {
+    return (
+      <TransactionReceipt
+        onBack={handleReceiptBack}
+        transactionData={transactionData}
+      />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-lg font-semibold">Buy Airtime</h1>
+        <div className="flex items-center gap-3">
+          <Bell className="h-5 w-5 text-destructive" />
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="/placeholder-avatar.jpg" />
+            <AvatarFallback>U</AvatarFallback>
+          </Avatar>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-6">
+        <Card className="p-6 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Network</label>
+            <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose network provider" />
+              </SelectTrigger>
+              <SelectContent>
+                {networks.map(network => (
+                  <SelectItem key={network.value} value={network.value}>
+                    {network.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Phone Number</label>
+            <Input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="081xxxxxxxx"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Amount</label>
+            <Input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount (min ₦100)"
+            />
+          </div>
+
+          <Button
+            onClick={handlePurchase}
+            disabled={!phoneNumber || !selectedNetwork || !amount || loading}
+            className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+          >
+            {loading ? 'Processing...' : 'Buy Airtime'}
+          </Button>
+        </Card>
+
+        {/* Quick Amount Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Quick Select Amount</label>
+          <div className="grid grid-cols-3 gap-2">
+            {predefinedAmounts.map((amt) => (
+              <Button
+                key={amt}
+                variant="outline"
+                onClick={() => handleAmountSelect(amt)}
+                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                ₦{amt.toLocaleString()}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

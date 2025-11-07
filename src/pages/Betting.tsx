@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
+import { getApiUrl } from "@/config/api";
 
 interface BettingProvider {
   id: number;
@@ -36,7 +37,7 @@ export default function Betting() {
   const fetchProviders = async () => {
     try {
       setIsLoadingProviders(true);
-      const response = await fetch('https://back.tesapay.com/coralpay/betting.php?action=providers');
+      const response = await fetch(`${getApiUrl('')}/coralpay/betting.php?action=providers`);
       const data = await response.json();
       
       if (data.success && data.data?.responseData) {
@@ -82,19 +83,22 @@ export default function Betting() {
 
     setIsLoading(true);
     try {
-      const provider = providers.find(p => p.slug === selectedProvider);
+      const userFromStorage = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
       
-      const response = await fetch('https://back.tesapay.com/coralpay/vend.php', {
+      const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user?.id,
+          user_id: userFromStorage.id,
           customerId: customerId,
           packageSlug: selectedProvider,
           amount: amountNum,
-          billerSlug: selectedProvider
+          customerName: `${userFromStorage.first_name} ${userFromStorage.last_name}`,
+          phoneNumber: userFromStorage.phone,
+          email: userFromStorage.email,
+          billerType: 'betting'
         })
       });
 
