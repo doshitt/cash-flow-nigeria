@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AirtimePurchase } from "@/components/AirtimePurchase";
 import { AirtimeConfirmation } from "@/components/AirtimeConfirmation";
 import { TransactionSuccess } from "@/components/TransactionSuccess";
-import { TransactionReceipt } from "@/components/TransactionReceipt";
+import TransactionReceipt from "@/components/TransactionReceipt";
 import { toast } from "@/hooks/use-toast";
 import { useFeatures } from "@/hooks/useFeatures";
 

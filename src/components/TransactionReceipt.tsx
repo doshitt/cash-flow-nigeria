@@ -6,29 +6,44 @@ import html2canvas from "html2canvas";
 import { useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-interface TransactionReceiptProps {
-  transactionId: string;
-  amount: string;
-  type: string;
-  status: string;
+interface TransactionData {
+  phoneNumber?: string;
+  amount: number;
   date: string;
+  time?: string;
+  status: string;
+  operator?: string;
+  transactionId: string;
+  type?: string;
   recipient?: string;
   customerId?: string;
   token?: string;
   packageName?: string;
 }
 
+interface TransactionReceiptProps {
+  transactionData: TransactionData;
+  onBack?: () => void;
+}
+
 export default function TransactionReceipt({
-  transactionId,
-  amount,
-  type,
-  status,
-  date,
-  recipient,
-  customerId,
-  token,
-  packageName
+  transactionData,
+  onBack
 }: TransactionReceiptProps) {
+  const {
+    transactionId,
+    amount,
+    type = 'airtime',
+    status,
+    date,
+    time,
+    phoneNumber,
+    operator,
+    recipient,
+    customerId,
+    token,
+    packageName
+  } = transactionData;
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -71,7 +86,7 @@ export default function TransactionReceipt({
   const shareReceipt = async () => {
     const shareData = {
       title: 'TesaPay Receipt',
-      text: `Transaction ${transactionId}\nAmount: ${amount}\nType: ${type}\nStatus: ${status}`,
+      text: `Transaction ${transactionId}\nAmount: ₦${amount}\nType: ${type}\nStatus: ${status}`,
     };
 
     try {
@@ -80,7 +95,7 @@ export default function TransactionReceipt({
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(
-          `TesaPay Transaction Receipt\n\nTransaction ID: ${transactionId}\nAmount: ${amount}\nType: ${type}\nStatus: ${status}\nDate: ${date}`
+          `TesaPay Transaction Receipt\n\nTransaction ID: ${transactionId}\nAmount: ₦${amount}\nType: ${type}\nStatus: ${status}\nDate: ${date}`
         );
         toast({
           title: "Copied",
@@ -107,7 +122,7 @@ export default function TransactionReceipt({
         <CardContent className="pt-6 space-y-6">
           <div className="text-center pb-6 border-b">
             <p className="text-sm text-muted-foreground mb-1">Amount</p>
-            <p className="text-4xl font-bold text-green-600">{amount}</p>
+            <p className="text-4xl font-bold text-green-600">₦{amount.toLocaleString()}</p>
           </div>
 
           <div className="space-y-4">
@@ -128,8 +143,22 @@ export default function TransactionReceipt({
 
             <div className="flex justify-between py-2 border-b">
               <span className="text-muted-foreground">Date & Time</span>
-              <span>{new Date(date).toLocaleString()}</span>
+              <span>{time ? `${date} ${time}` : new Date(date).toLocaleString()}</span>
             </div>
+
+            {phoneNumber && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-muted-foreground">Phone Number</span>
+                <span className="font-medium">{phoneNumber}</span>
+              </div>
+            )}
+
+            {operator && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-muted-foreground">Operator</span>
+                <span className="font-medium">{operator}</span>
+              </div>
+            )}
 
             {recipient && (
               <div className="flex justify-between py-2 border-b">
@@ -168,6 +197,11 @@ export default function TransactionReceipt({
       </Card>
 
       <div className="flex gap-2">
+        {onBack && (
+          <Button onClick={onBack} variant="outline" className="flex-1">
+            Back to Home
+          </Button>
+        )}
         <Button onClick={downloadPDF} className="flex-1">
           <Download className="mr-2 h-4 w-4" />
           Download PDF
