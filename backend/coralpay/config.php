@@ -2,8 +2,8 @@
 // CoralPay VAS API Configuration
 class CoralPayConfig {
     // API Credentials (IMPORTANT: Replace with your actual credentials)
-    const USERNAME = 'your_coralpay_username';
-    const PASSWORD = 'your_coralpay_password';
+    const USERNAME = 'Tesapay';
+    const PASSWORD = 'Tesapay113#';
     
     // API URLs
     const TEST_BASE_URL = 'http://sandbox1.coralpay.com:8080/coralpay-vas/api';
