@@ -54,6 +54,14 @@ export default function Airtime() {
 
   const predefinedAmounts = [100, 200, 500, 1000, 2000, 5000];
 
+  // Default networks as fallback
+  const defaultNetworks: NetworkBiller[] = [
+    { id: 1, name: "MTN", slug: "MTN-VTU", groupId: 1 },
+    { id: 2, name: "Airtel", slug: "AIRTEL-VTU", groupId: 1 },
+    { id: 3, name: "Glo", slug: "GLO-VTU", groupId: 1 },
+    { id: 4, name: "9Mobile", slug: "9MOBILE-VTU", groupId: 1 }
+  ];
+
   useEffect(() => {
     if (!isFeatureEnabled('airtime')) {
       navigate('/');
@@ -71,20 +79,19 @@ export default function Airtime() {
       
       if (result.success && result.data?.responseData) {
         setNetworks(result.data.responseData);
-      } else {
         toast({
-          title: "Error",
-          description: "Failed to load networks. Using defaults.",
-          variant: "destructive"
+          title: "Networks Loaded",
+          description: "Successfully loaded from CoralPay API",
         });
+      } else {
+        // Use defaults if API fails
+        setNetworks(defaultNetworks);
+        console.warn('CoralPay API error:', result.error || result.message);
       }
     } catch (error) {
       console.error('Error fetching networks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load networks. Please refresh.",
-        variant: "destructive"
-      });
+      // Use defaults if fetch fails
+      setNetworks(defaultNetworks);
     } finally {
       setLoadingNetworks(false);
     }
