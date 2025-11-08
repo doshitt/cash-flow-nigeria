@@ -4,15 +4,11 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tesapay";
+// Use shared database config
+require_once 'config/database.php';
 
 try {
-    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO($dsn, $username, $password, $options);
     
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Only POST method allowed');
@@ -36,11 +32,11 @@ try {
     $pin_hash = password_hash($new_pin, PASSWORD_DEFAULT);
     
     // Update PIN
-    $stmt = $conn->prepare("UPDATE users SET pin = ?, updated_at = NOW() WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE users SET pin = ?, updated_at = NOW() WHERE id = ?");
     $stmt->execute([$pin_hash, $user_id]);
     
     // Log PIN change
-    $stmt = $conn->prepare("INSERT INTO user_activities (user_id, activity_type, description, created_at) VALUES (?, 'pin_change', 'Account PIN changed successfully', NOW())");
+    $stmt = $pdo->prepare("INSERT INTO user_activities (user_id, activity_type, description, created_at) VALUES (?, 'pin_change', 'Account PIN changed successfully', NOW())");
     $stmt->execute([$user_id]);
     
     echo json_encode([
