@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { getApiUrl } from "@/config/api";
 
 interface Feature {
@@ -20,10 +21,10 @@ export const useFeatures = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  const isFeatureEnabled = (featureId: string): boolean => {
+  const isFeatureEnabled = useCallback((featureId: string): boolean => {
     const feature = features?.find(f => f.id === featureId);
     return feature?.is_enabled ?? true; // Default to enabled if not found
-  };
+  }, [features]);
 
   return { features, isFeatureEnabled };
 };
