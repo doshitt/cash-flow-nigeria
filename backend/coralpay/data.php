@@ -18,8 +18,9 @@ try {
     $action = $_GET['action'] ?? '';
     
     if ($action === 'providers') {
-        // Get data providers from the data group
-        $result = CoralPayConfig::makeRequest('/billers/group/slug/data');
+        // Get data providers from the correct group slug (override via ?groupSlug=)
+        $groupSlug = $_GET['groupSlug'] ?? 'AIRTIME_AND_DATA';
+        $result = CoralPayConfig::makeRequest("/billers/group/slug/{$groupSlug}");
         
         if ($result['success']) {
             echo json_encode([

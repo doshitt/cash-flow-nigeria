@@ -17,8 +17,9 @@ try {
     
     // Get betting providers (billers in betting group)
     if (isset($_GET['action']) && $_GET['action'] === 'providers') {
-        // Fetch betting billers from the betting group
-        $result = CoralPayConfig::makeRequest('/billers/group/slug/betting');
+        // Fetch betting billers using the correct group slug
+        $groupSlug = $_GET['groupSlug'] ?? 'BETTING_AND_LOTTERY';
+        $result = CoralPayConfig::makeRequest("/billers/group/slug/{$groupSlug}");
         
         if ($result['success']) {
             echo json_encode([
