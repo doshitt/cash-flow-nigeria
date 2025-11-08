@@ -7,6 +7,7 @@ import { ArrowLeft, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { getApiUrl } from "@/config/api";
 
 interface TVPackage {
@@ -26,6 +27,7 @@ interface TVProvider {
 
 export default function TV() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [smartcardNumber, setSmartcardNumber] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("");
@@ -96,10 +98,10 @@ export default function TV() {
   };
 
   const validateSmartcard = async () => {
-    if (!smartcardNumber || !selectedProvider || !selectedPackage) {
+    if (!smartcardNumber || !selectedProvider) {
       toast({
         title: "Validation Error",
-        description: "Please enter smartcard number, select provider and package",
+        description: "Please enter smartcard number and select provider",
         variant: "destructive"
       });
       return;
@@ -126,11 +128,11 @@ export default function TV() {
 
       const result = await response.json();
 
-      if (result.success) {
-        setCustomerInfo(result.data);
+      if (result.success || result.data?.statusCode === '30') {
+        setCustomerInfo(result.data || { customer: { customerName: smartcardNumber }, validated: true });
         toast({
           title: "Smartcard Validated",
-          description: `Customer: ${result.data.customer?.customerName || 'Unknown'}`
+          description: result.data?.customer?.customerName || 'Smartcard validated'
         });
       } else {
         toast({
@@ -165,20 +167,25 @@ export default function TV() {
 
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
+      const authedUser = user;
+      if (!authedUser?.id) {
+        toast({ title: "Auth Error", description: "Please log in again", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
 
       const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: authedUser.id,
           customerId: smartcardNumber,
           packageSlug: selectedPackage,
           billerSlug: selectedProvider,
           amount: selectedPkg.amount,
           customerName: customerInfo.customer?.customerName,
-          phoneNumber: user.phone,
-          email: user.email,
+          phoneNumber: authedUser.phone,
+          email: authedUser.email,
           billerType: 'tv'
         })
       });

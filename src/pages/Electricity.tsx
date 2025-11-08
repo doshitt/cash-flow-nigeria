@@ -10,6 +10,7 @@ import TransactionReceipt from "@/components/TransactionReceipt";
 import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { toast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/config/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ElectricityProvider {
   id: number;
@@ -34,6 +35,7 @@ type ElecStep = "purchase" | "success" | "receipt";
 
 export default function Electricity() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<ElecStep>("purchase");
   const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
   const [meterNumber, setMeterNumber] = useState("");
@@ -151,21 +153,27 @@ export default function Electricity() {
 
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
+      const authedUser = user;
       const packageSlug = `${selectedDisco}_${meterType.toUpperCase()}`;
+
+      if (!authedUser?.id) {
+        toast({ title: "Auth Error", description: "Please log in again", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
 
       const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: authedUser.id,
           customerId: meterNumber,
           packageSlug: packageSlug,
           billerSlug: selectedDisco,
           amount: amountValue,
           customerName: customerInfo.customer?.customerName,
-          phoneNumber: user.phone,
-          email: user.email,
+          phoneNumber: authedUser.phone,
+          email: authedUser.email,
           billerType: 'electricity'
         })
       });

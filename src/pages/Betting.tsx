@@ -149,7 +149,16 @@ export default function Betting() {
 
     setIsLoading(true);
     try {
-      const userFromStorage = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
+      const authedUser = user;
+      if (!authedUser?.id) {
+        toast({
+          title: "Auth Error",
+          description: "Please log in again",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
       
       const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
@@ -157,13 +166,13 @@ export default function Betting() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: userFromStorage.id,
+          user_id: authedUser.id,
           customerId: customerId,
           billerSlug: selectedProvider,
           amount: amountNum,
-          customerName: customerInfo.customer?.customerName || `${userFromStorage.first_name} ${userFromStorage.last_name}`,
-          phoneNumber: userFromStorage.phone,
-          email: userFromStorage.email,
+          customerName: customerInfo.customer?.customerName || `${authedUser.first_name} ${authedUser.last_name}`,
+          phoneNumber: authedUser.phone,
+          email: authedUser.email,
           billerType: 'betting'
         })
       });
