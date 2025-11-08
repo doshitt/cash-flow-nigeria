@@ -114,6 +114,7 @@ export default function Electricity() {
           user_id: user.id,
           customerId: meterNumber,
           packageSlug: packageSlug,
+          billerSlug: selectedDisco,
           amount: amountValue,
           customerName: customerInfo.customer?.customerName,
           phoneNumber: user.phone,

@@ -132,6 +132,7 @@ export default function TV() {
           user_id: user.id,
           customerId: smartcardNumber,
           packageSlug: selectedPackage,
+          billerSlug: selectedProvider,
           amount: selectedPkg.amount,
           customerName: customerInfo.customer?.customerName,
           phoneNumber: user.phone,

@@ -94,6 +94,7 @@ export default function Betting() {
           user_id: userFromStorage.id,
           customerId: customerId,
           packageSlug: selectedProvider,
+          billerSlug: selectedProvider,
           amount: amountNum,
           customerName: `${userFromStorage.first_name} ${userFromStorage.last_name}`,
           phoneNumber: userFromStorage.phone,

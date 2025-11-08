@@ -93,6 +93,7 @@ export default function Data() {
           user_id: user.id,
           customerId: phoneNumber,
           packageSlug: selectedPackage,
+          billerSlug: selectedNetwork,
           amount: selectedPkg.amount,
           customerName: `${user.first_name} ${user.last_name}`,
           phoneNumber: user.phone,

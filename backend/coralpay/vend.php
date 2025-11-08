@@ -80,6 +80,9 @@ try {
     $status = 'pending';
     $coralPayResponse = json_encode($result['data'] ?? []);
     
+    // Log the full response for debugging
+    error_log("CoralPay Response: " . json_encode($result));
+    
     if ($result['success'] && isset($result['data']['responseCode']) && $result['data']['responseCode'] === '00') {
         $status = 'completed';
         $responseMessage = $result['data']['message'] ?? 'Transaction successful';
@@ -89,7 +92,13 @@ try {
         $stmt->execute([$amount, $userId]);
         
         $status = 'failed';
-        $responseMessage = $result['data']['message'] ?? 'Transaction failed';
+        $responseCode = $result['data']['responseCode'] ?? 'UNKNOWN';
+        $responseMessage = $result['data']['message'] ?? $result['error'] ?? 'Transaction failed';
+        
+        // More detailed error message
+        if (isset($result['httpCode'])) {
+            $responseMessage .= " (HTTP " . $result['httpCode'] . ", Code: " . $responseCode . ")";
+        }
     }
     
     // Log transaction (align with current schema - no `metadata` column)

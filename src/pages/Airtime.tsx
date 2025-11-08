@@ -120,6 +120,7 @@ export default function Airtime() {
           user_id: user.id,
           customerId: phoneNumber,
           packageSlug: packageSlug,
+          billerSlug: selectedNetwork,
           amount: amountValue,
           customerName: `${user.first_name} ${user.last_name}`,
           phoneNumber: user.phone,

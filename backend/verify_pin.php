@@ -4,15 +4,10 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tesapay";
+require_once 'config/database.php';
 
 try {
-    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO($dsn, $username, $password, $options);
     
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Only POST method allowed');
@@ -28,7 +23,7 @@ try {
     $pin = $input['pin'];
     
     // Get user's PIN
-    $stmt = $conn->prepare("SELECT pin FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT pin FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
