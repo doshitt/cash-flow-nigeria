@@ -182,12 +182,16 @@ export default function Betting() {
                   <div className="flex items-center justify-center p-4">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
+                ) : providers.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground border rounded-md bg-muted">
+                    No betting providers available at the moment
+                  </div>
                 ) : (
                   <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                    <SelectTrigger id="provider">
+                    <SelectTrigger id="provider" className="bg-background">
                       <SelectValue placeholder="Select betting provider" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-50 bg-background border shadow-lg">
                       {providers.map((provider) => (
                         <SelectItem key={provider.id} value={provider.slug}>
                           {provider.name}
