@@ -2,7 +2,7 @@
 // CORS headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -10,6 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+// Include config file
+require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/config.php';
 
 try {
@@ -28,6 +30,32 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => $result['message'] ?? 'Failed to fetch electricity providers',
+                'error' => $result['error'] ?? null
+            ]);
+        }
+    } elseif ($action === 'packages') {
+        // Get packages for a specific provider
+        $providerSlug = $_GET['providerSlug'] ?? '';
+        
+        if (empty($providerSlug)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Provider slug is required'
+            ]);
+            exit;
+        }
+        
+        $result = CoralPayConfig::makeRequest("/packages/biller/slug/{$providerSlug}");
+        
+        if ($result['success']) {
+            echo json_encode([
+                'success' => true,
+                'data' => $result['data']
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => $result['message'] ?? 'Failed to fetch packages',
                 'error' => $result['error'] ?? null
             ]);
         }
