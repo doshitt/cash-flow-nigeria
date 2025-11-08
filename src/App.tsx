@@ -45,6 +45,7 @@ import AdminFeatures from "./pages/admin/Features";
 import AdminKYCVerifications from "./pages/admin/KYCVerifications";
 import AdminCoralPayTransactions from "./pages/admin/CoralPayTransactions";
 import KYCVerification from "./pages/KYCVerification";
+import BackendStatus from "./pages/BackendStatus";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/backend-status" element={<BackendStatus />} />
           
           {/* Protected User App Routes */}
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

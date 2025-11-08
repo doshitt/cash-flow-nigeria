@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { TopHeader } from "@/components/TopHeader";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useFeatures } from "@/hooks/useFeatures";
+import { getApiUrl } from "@/config/api";
 
 interface Voucher {
   id: number;
@@ -55,18 +56,18 @@ export const Vouchers = () => {
 
   const selectedCurrencyData = currencies.find(c => c.code === selectedCurrency);
 
-  // Fetch user vouchers
-  const fetchUserVouchers = async () => {
-    try {
-      const response = await fetch('/backend/gift_vouchers.php?action=user_vouchers&user_id=1');
-      const data = await response.json();
-      if (data.success) {
-        setUserVouchers(data.vouchers);
-      }
-    } catch (error) {
-      console.error('Failed to fetch vouchers:', error);
+// Fetch user vouchers
+const fetchUserVouchers = async () => {
+  try {
+    const response = await fetch(getApiUrl('/gift_vouchers.php?action=user_vouchers&user_id=1'));
+    const data = await response.json();
+    if (data.success) {
+      setUserVouchers(data.vouchers);
     }
-  };
+  } catch (error) {
+    console.error('Failed to fetch vouchers:', error);
+  }
+};
 
   // Load user vouchers on component mount
   useEffect(() => {
@@ -107,45 +108,45 @@ export const Vouchers = () => {
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('/backend/gift_vouchers.php?action=create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: 1, // Mock user ID
-          amount: numericAmount,
-          currency: selectedCurrency
-        })
-      });
+setIsLoading(true);
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setCreatedVoucherCode(data.voucher_code);
-        setCurrentStep('success');
-        // Refresh voucher list after creation
-        fetchUserVouchers();
-      } else {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to create voucher",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Voucher creation error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create voucher. Please check your connection and try again.",
-        variant: "destructive"
-      });
-    }
-    
-    setIsLoading(false);
+try {
+  const response = await fetch(getApiUrl('/gift_vouchers.php?action=create'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      user_id: 1, // Mock user ID
+      amount: numericAmount,
+      currency: selectedCurrency
+    })
+  });
+
+  const data = await response.json();
+  
+  if (data.success) {
+    setCreatedVoucherCode(data.voucher_code);
+    setCurrentStep('success');
+    // Refresh voucher list after creation
+    fetchUserVouchers();
+  } else {
+    toast({
+      title: "Error",
+      description: data.message || "Failed to create voucher",
+      variant: "destructive"
+    });
+  }
+} catch (error) {
+  console.error('Voucher creation error:', error);
+  toast({
+    title: "Error",
+    description: "Failed to create voucher. Please check your connection and try again.",
+    variant: "destructive"
+  });
+}
+
+setIsLoading(false);
   };
 
   const handleRedeemVoucher = async () => {
@@ -158,42 +159,42 @@ export const Vouchers = () => {
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('/backend/gift_vouchers.php?action=redeem', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: 1, // Mock user ID
-          code: redeemCode.trim()
-        })
-      });
+setIsLoading(true);
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setRedeemAmount(data.amount_received);
-        setRedeemCurrency(data.currency);
-        setCurrentStep('redeem-success');
-      } else {
-        toast({
-          title: "Redemption Failed",
-          description: data.message,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to redeem voucher. Please try again.",
-        variant: "destructive"
-      });
-    }
-    
-    setIsLoading(false);
+try {
+  const response = await fetch(getApiUrl('/gift_vouchers.php?action=redeem'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      user_id: 1, // Mock user ID
+      code: redeemCode.trim()
+    })
+  });
+
+  const data = await response.json();
+  
+  if (data.success) {
+    setRedeemAmount(data.amount_received);
+    setRedeemCurrency(data.currency);
+    setCurrentStep('redeem-success');
+  } else {
+    toast({
+      title: "Redemption Failed",
+      description: data.message,
+      variant: "destructive"
+    });
+  }
+} catch (error) {
+  toast({
+    title: "Error",
+    description: "Failed to redeem voucher. Please try again.",
+    variant: "destructive"
+  });
+}
+
+setIsLoading(false);
   };
 
   const copyToClipboard = (text: string) => {
