@@ -28,6 +28,12 @@ const tests = [
     expectPhpParsed: true,
   },
   {
+    name: "Backend: health.php",
+    method: "GET",
+    url: () => `${getApiUrl("")}/health.php`,
+    expectPhpParsed: true,
+  },
+  {
     name: "VAS: betting providers",
     method: "GET",
     url: () => `${getApiUrl("")}/coralpay/betting.php?action=providers`,

@@ -166,7 +166,11 @@ try {
         echo json_encode([
             'success' => false,
             'message' => $responseMessage,
-            'transaction_id' => $transactionId
+            'transaction_id' => $transactionId,
+            'response_code' => $responseCode ?? null,
+            'http_code' => $result['httpCode'] ?? null,
+            'coralpay_error' => $result['error'] ?? null,
+            'coralpay_data' => $result['data'] ?? null
         ]);
     }
     
