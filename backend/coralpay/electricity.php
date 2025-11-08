@@ -18,8 +18,9 @@ try {
     $action = $_GET['action'] ?? '';
     
     if ($action === 'providers') {
-        // Get electricity providers from the electricity group
-        $result = CoralPayConfig::makeRequest('/billers/group/slug/electricity');
+        // Get electricity providers from the correct group slug
+        $groupSlug = $_GET['groupSlug'] ?? 'ELECTRIC_DISCOS';
+        $result = CoralPayConfig::makeRequest("/billers/group/slug/{$groupSlug}");
         
         if ($result['success']) {
             echo json_encode([

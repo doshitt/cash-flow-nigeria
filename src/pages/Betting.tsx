@@ -93,7 +93,6 @@ export default function Betting() {
         body: JSON.stringify({
           user_id: userFromStorage.id,
           customerId: customerId,
-          packageSlug: selectedProvider,
           billerSlug: selectedProvider,
           amount: amountNum,
           customerName: `${userFromStorage.first_name} ${userFromStorage.last_name}`,

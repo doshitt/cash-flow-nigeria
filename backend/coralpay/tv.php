@@ -19,7 +19,7 @@ try {
     
     if ($action === 'providers') {
         // Get TV providers from the correct group slug
-        $groupSlug = $_GET['groupSlug'] ?? 'PAID_TV';
+        $groupSlug = $_GET['groupSlug'] ?? 'PAY_TV';
         $result = CoralPayConfig::makeRequest("/billers/group/slug/{$groupSlug}");
         
         if ($result['success']) {
