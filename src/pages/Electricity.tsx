@@ -9,6 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/config/api";
 
+interface ElectricityProvider {
+  id: number;
+  name: string;
+  slug: string;
+  groupId: number;
+}
+
 export default function Electricity() {
   const navigate = useNavigate();
   const [meterNumber, setMeterNumber] = useState("");
@@ -16,17 +23,40 @@ export default function Electricity() {
   const [meterType, setMeterType] = useState("");
   const [amount, setAmount] = useState("");
   const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [discos, setDiscos] = useState<ElectricityProvider[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingProviders, setLoadingProviders] = useState(true);
 
-  const discos = [
-    { value: "IKEDC", label: "Ikeja Electric (IKEDC)", prepaid: "IKEDC_PREPAID", postpaid: "IKEDC_POSTPAID" },
-    { value: "EKEDC", label: "Eko Electric (EKEDC)", prepaid: "EKEDC_PREPAID", postpaid: "EKEDC_POSTPAID" },
-    { value: "AEDC", label: "Abuja Electric (AEDC)", prepaid: "AEDC_PREPAID", postpaid: "AEDC_POSTPAID" },
-    { value: "PHEDC", label: "Port Harcourt Electric (PHEDC)", prepaid: "PHEDC_PREPAID", postpaid: "PHEDC_POSTPAID" },
-    { value: "IBEDC", label: "Ibadan Electric (IBEDC)", prepaid: "IBEDC_PREPAID", postpaid: "IBEDC_POSTPAID" },
-    { value: "KEDC", label: "Kaduna Electric (KEDC)", prepaid: "KEDC_PREPAID", postpaid: "KEDC_POSTPAID" },
-    { value: "JEDC", label: "Jos Electric (JEDC)", prepaid: "JEDC_PREPAID", postpaid: "JEDC_POSTPAID" }
-  ];
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  const fetchProviders = async () => {
+    setLoadingProviders(true);
+    try {
+      const response = await fetch(`${getApiUrl('')}/coralpay/electricity.php?action=providers`);
+      const result = await response.json();
+      
+      if (result.success && result.data?.responseData) {
+        setDiscos(result.data.responseData);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load electricity providers",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load electricity providers",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
 
   const validateMeter = async () => {
     if (!meterNumber || !selectedDisco || !meterType) {
@@ -40,8 +70,8 @@ export default function Electricity() {
 
     setLoading(true);
     try {
-      const disco = discos.find(d => d.value === selectedDisco);
-      const productName = meterType === 'prepaid' ? disco?.prepaid : disco?.postpaid;
+      const disco = discos.find(d => d.slug === selectedDisco);
+      const productName = `${selectedDisco}_${meterType.toUpperCase()}`;
 
       const response = await fetch(`${getApiUrl('')}/coralpay/customer_lookup.php`, {
         method: 'POST',
@@ -104,8 +134,7 @@ export default function Electricity() {
     setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
-      const disco = discos.find(d => d.value === selectedDisco);
-      const packageSlug = meterType === 'prepaid' ? disco?.prepaid : disco?.postpaid;
+      const packageSlug = `${selectedDisco}_${meterType.toUpperCase()}`;
 
       const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
@@ -169,14 +198,14 @@ export default function Electricity() {
         <Card className="p-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Distribution Company</label>
-            <Select value={selectedDisco} onValueChange={setSelectedDisco}>
+            <Select value={selectedDisco} onValueChange={setSelectedDisco} disabled={loadingProviders}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose your DISCO" />
+                <SelectValue placeholder={loadingProviders ? "Loading providers..." : "Choose your DISCO"} />
               </SelectTrigger>
               <SelectContent>
                 {discos.map(disco => (
-                  <SelectItem key={disco.value} value={disco.value}>
-                    {disco.label}
+                  <SelectItem key={disco.slug} value={disco.slug}>
+                    {disco.name}
                   </SelectItem>
                 ))}
               </SelectContent>

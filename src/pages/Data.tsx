@@ -18,6 +18,13 @@ interface DataPackage {
   billerId: number;
 }
 
+interface NetworkProvider {
+  id: number;
+  name: string;
+  slug: string;
+  groupId: number;
+}
+
 export default function Data() {
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatures();
@@ -25,14 +32,9 @@ export default function Data() {
   const [selectedNetwork, setSelectedNetwork] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("");
   const [packages, setPackages] = useState<DataPackage[]>([]);
+  const [networks, setNetworks] = useState<NetworkProvider[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const networks = [
-    { value: "MTN-DATA", label: "MTN" },
-    { value: "AIRTEL-DATA", label: "Airtel" },
-    { value: "GLO-DATA", label: "Glo" },
-    { value: "9MOBILE-DATA", label: "9Mobile" }
-  ];
+  const [loadingProviders, setLoadingProviders] = useState(true);
 
   useEffect(() => {
     if (!isFeatureEnabled('data')) {
@@ -41,16 +43,47 @@ export default function Data() {
   }, [isFeatureEnabled, navigate]);
 
   useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  useEffect(() => {
     if (selectedNetwork) {
       fetchDataPackages(selectedNetwork);
     }
   }, [selectedNetwork]);
 
+  const fetchProviders = async () => {
+    setLoadingProviders(true);
+    try {
+      const response = await fetch(`${getApiUrl('')}/coralpay/data.php?action=providers`);
+      const result = await response.json();
+      
+      if (result.success && result.data?.responseData) {
+        setNetworks(result.data.responseData);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load data providers",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load data providers",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
   const fetchDataPackages = async (billerSlug: string) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${getApiUrl('')}/coralpay/billers.php?action=packages&billerSlug=${billerSlug}`
+        `${getApiUrl('')}/coralpay/data.php?action=packages&providerSlug=${billerSlug}`
       );
       const result = await response.json();
       
@@ -148,14 +181,14 @@ export default function Data() {
         <Card className="p-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Network</label>
-            <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
+            <Select value={selectedNetwork} onValueChange={setSelectedNetwork} disabled={loadingProviders}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose network provider" />
+                <SelectValue placeholder={loadingProviders ? "Loading networks..." : "Choose network provider"} />
               </SelectTrigger>
               <SelectContent className="z-50">
                 {networks.map(network => (
-                  <SelectItem key={network.value} value={network.value}>
-                    {network.label}
+                  <SelectItem key={network.slug} value={network.slug}>
+                    {network.name}
                   </SelectItem>
                 ))}
               </SelectContent>

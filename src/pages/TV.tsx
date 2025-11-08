@@ -17,20 +17,27 @@ interface TVPackage {
   billerId: number;
 }
 
+interface TVProvider {
+  id: number;
+  name: string;
+  slug: string;
+  groupId: number;
+}
+
 export default function TV() {
   const navigate = useNavigate();
   const [smartcardNumber, setSmartcardNumber] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("");
   const [packages, setPackages] = useState<TVPackage[]>([]);
+  const [providers, setProviders] = useState<TVProvider[]>([]);
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProviders, setLoadingProviders] = useState(true);
 
-  const providers = [
-    { value: "DSTV", label: "DStv" },
-    { value: "GOTV", label: "GOtv" },
-    { value: "STARTIMES", label: "Startimes" }
-  ];
+  useEffect(() => {
+    fetchProviders();
+  }, []);
 
   useEffect(() => {
     if (selectedProvider) {
@@ -38,11 +45,38 @@ export default function TV() {
     }
   }, [selectedProvider]);
 
+  const fetchProviders = async () => {
+    setLoadingProviders(true);
+    try {
+      const response = await fetch(`${getApiUrl('')}/coralpay/tv.php?action=providers`);
+      const result = await response.json();
+      
+      if (result.success && result.data?.responseData) {
+        setProviders(result.data.responseData);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load TV providers",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load TV providers",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
   const fetchTVPackages = async (billerSlug: string) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${getApiUrl('')}/coralpay/billers.php?action=packages&billerSlug=${billerSlug}`
+        `${getApiUrl('')}/coralpay/tv.php?action=packages&providerSlug=${billerSlug}`
       );
       const result = await response.json();
       
@@ -187,14 +221,14 @@ export default function TV() {
         <Card className="p-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Provider</label>
-            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+            <Select value={selectedProvider} onValueChange={setSelectedProvider} disabled={loadingProviders}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose TV provider" />
+                <SelectValue placeholder={loadingProviders ? "Loading providers..." : "Choose TV provider"} />
               </SelectTrigger>
               <SelectContent>
                 {providers.map(provider => (
-                  <SelectItem key={provider.value} value={provider.value}>
-                    {provider.label}
+                  <SelectItem key={provider.slug} value={provider.slug}>
+                    {provider.name}
                   </SelectItem>
                 ))}
               </SelectContent>
