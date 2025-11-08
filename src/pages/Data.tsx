@@ -142,7 +142,21 @@ export default function Data() {
           title: "Success!",
           description: `Data bundle purchased successfully for ${phoneNumber}`
         });
-        navigate('/');
+        
+        // Navigate to success screen with transaction details
+        navigate('/', { 
+          state: { 
+            showReceipt: true,
+            transaction: {
+              type: 'Data Purchase',
+              amount: selectedPkg.amount,
+              recipient: phoneNumber,
+              reference: result.data?.payment_reference,
+              status: 'completed',
+              date: new Date().toISOString()
+            }
+          }
+        });
       } else {
         toast({
           title: "Transaction Failed",

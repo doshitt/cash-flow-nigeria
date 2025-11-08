@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `coralpay_transactions` (
   `user_id` int(11) NOT NULL,
   `biller_type` enum('airtime','data','electricity','tv','betting') NOT NULL,
   `customer_id` varchar(100) NOT NULL COMMENT 'Phone number, meter number, smartcard number, etc.',
-  `package_slug` varchar(100) NOT NULL,
+  `package_slug` varchar(100) DEFAULT NULL COMMENT 'Optional - not required for betting',
   `amount` decimal(15,2) NOT NULL,
   `payment_reference` varchar(100) NOT NULL,
   `status` enum('pending','completed','failed','refunded') DEFAULT 'pending',
