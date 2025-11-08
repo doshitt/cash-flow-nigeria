@@ -51,6 +51,7 @@ export default function Airtime() {
   const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
   const [networks, setNetworks] = useState<NetworkBiller[]>([]);
   const [loadingNetworks, setLoadingNetworks] = useState(true);
+  const [selectedPackageSlug, setSelectedPackageSlug] = useState("");
 
   const predefinedAmounts = [100, 200, 500, 1000, 2000, 5000];
 
@@ -112,7 +113,22 @@ export default function Airtime() {
       const result = await response.json();
       
       if (result.success && result.data?.responseData) {
-        setPackages(result.data.responseData);
+        const fetchedPackages = result.data.responseData;
+        setPackages(fetchedPackages);
+        
+        // Find VTU package (Variable Top Up) - this is what allows custom amounts
+        const vtuPackage = fetchedPackages.find((p: AirtimePackage) => 
+          p.name.toUpperCase().includes('VTU') || p.slug.toUpperCase().includes('VTU')
+        );
+        
+        if (vtuPackage) {
+          setSelectedPackageSlug(vtuPackage.slug);
+          console.log('Using VTU package:', vtuPackage.slug);
+        } else if (fetchedPackages.length > 0) {
+          // Fallback to first package if no VTU found
+          setSelectedPackageSlug(fetchedPackages[0].slug);
+          console.log('Using first package:', fetchedPackages[0].slug);
+        }
       }
     } catch (error) {
       console.error('Error fetching packages:', error);
@@ -145,11 +161,15 @@ export default function Airtime() {
     try {
       const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
       
-      // Find package closest to amount or use network slug for custom amount
-      let packageSlug = selectedNetwork;
-      const matchingPackage = packages.find(p => p.amount === amountValue);
-      if (matchingPackage) {
-        packageSlug = matchingPackage.slug;
+      // Use the VTU package slug that was fetched when network was selected
+      if (!selectedPackageSlug) {
+        toast({
+          title: "Error",
+          description: "Please wait for packages to load",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
       }
 
       const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
@@ -158,8 +178,7 @@ export default function Airtime() {
         body: JSON.stringify({
           user_id: user.id,
           customerId: phoneNumber,
-          packageSlug: packageSlug,
-          billerSlug: selectedNetwork,
+          packageSlug: selectedPackageSlug,
           amount: amountValue,
           customerName: `${user.first_name} ${user.last_name}`,
           phoneNumber: user.phone,
