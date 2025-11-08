@@ -96,10 +96,10 @@ export default function TV() {
   };
 
   const validateSmartcard = async () => {
-    if (!smartcardNumber || !selectedProvider) {
+    if (!smartcardNumber || !selectedProvider || !selectedPackage) {
       toast({
         title: "Validation Error",
-        description: "Please enter smartcard number and select provider",
+        description: "Please enter smartcard number, select provider and package",
         variant: "destructive"
       });
       return;

@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import TransactionReceipt from "@/components/TransactionReceipt";
+import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { toast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/config/api";
 
@@ -16,8 +18,24 @@ interface ElectricityProvider {
   groupId: number;
 }
 
+interface TransactionData {
+  amount: number;
+  date: string;
+  time: string;
+  status: string;
+  operator: string;
+  transactionId: string;
+  type: string;
+  customerId: string;
+  token?: string;
+}
+
+type ElecStep = "purchase" | "success" | "receipt";
+
 export default function Electricity() {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState<ElecStep>("purchase");
+  const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
   const [meterNumber, setMeterNumber] = useState("");
   const [selectedDisco, setSelectedDisco] = useState("");
   const [meterType, setMeterType] = useState("");
@@ -155,11 +173,27 @@ export default function Electricity() {
       const result = await response.json();
 
       if (result.success) {
+        const now = new Date();
+        const operatorName = discos.find(d => d.slug === selectedDisco)?.name || selectedDisco;
+        const txId = result.data?.transaction_id || result.data?.payment_reference || '';
+        const token = result.data?.token || result.data?.responseData?.token || null;
+        const transaction: TransactionData = {
+          amount: amountValue,
+          date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+          time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          status: 'Successful',
+          operator: operatorName,
+          transactionId: txId,
+          type: 'electricity',
+          customerId: meterNumber,
+          token: token || undefined
+        };
+        setTransactionData(transaction);
+        setCurrentStep("success");
         toast({
           title: "Payment Successful!",
-          description: result.data.token ? `Token: ${result.data.token}` : "Electricity credited successfully"
+          description: token ? `Token: ${token}` : "Electricity credited successfully"
         });
-        navigate('/');
       } else {
         toast({
           title: "Payment Failed",
@@ -178,10 +212,32 @@ export default function Electricity() {
     }
   };
 
+  // Success and Receipt views
+  const handleDone = () => setCurrentStep("receipt");
+  const handleShowReceipt = () => setCurrentStep("receipt");
+  const handleReceiptBack = () => navigate("/");
+
+  if (currentStep === "success") {
+    return <TransactionSuccess onDone={handleDone} onShowReceipt={handleShowReceipt} />;
+  }
+
+  if (currentStep === "receipt" && transactionData) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <Button variant="ghost" size="icon" onClick={handleReceiptBack}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="mt-4">
+          <TransactionReceipt onBack={handleReceiptBack} transactionData={transactionData} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex items-center justify-between p-4 border-b">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>\
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-semibold">Electricity Bill</h1>

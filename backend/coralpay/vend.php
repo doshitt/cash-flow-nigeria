@@ -99,6 +99,25 @@ try {
         $vendData['packageSlug'] = $packageSlug;
     }
     
+    // For providers that enforce prior enquiry, perform lookup right before payment
+    if (in_array($billerType, ['betting', 'tv'])) {
+        $lookupPayload = [
+            'customerId' => $customerId,
+            'billerSlug' => $billerSlug ?: $billerType
+        ];
+        if ($packageSlug) {
+            $lookupPayload['productName'] = $packageSlug;
+        }
+        $lookupRes = CoralPayConfig::makeRequest('/transactions/customer-lookup', 'POST', $lookupPayload);
+        if (!($lookupRes['success'] && isset($lookupRes['data']['responseCode']) && $lookupRes['data']['responseCode'] === '00')) {
+            echo json_encode([
+                'success' => false,
+                'message' => $lookupRes['data']['message'] ?? ($lookupRes['error'] ?? 'Customer enquiry failed')
+            ]);
+            exit();
+        }
+    }
+    
     // Deduct from wallet first
     $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");
     $stmt->execute([$amount, $userId]);
