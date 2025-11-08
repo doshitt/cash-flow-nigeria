@@ -29,7 +29,8 @@ try {
     $customerName = $input['customerName'] ?? null;
     $phoneNumber = $input['phoneNumber'] ?? null;
     $email = $input['email'] ?? null;
-    $billerType = $input['billerType'] ?? null; // airtime, data, electricity, tv
+    $billerType = $input['billerType'] ?? null; // airtime, data, electricity, tv, betting
+    $billerSlug = $input['billerSlug'] ?? null; // optional but recommended
     
     if (!$userId || !$customerId || !$packageSlug || !$amount) {
         echo json_encode([
@@ -60,6 +61,7 @@ try {
         'paymentReference' => $paymentReference,
         'customerId' => $customerId,
         'packageSlug' => $packageSlug,
+        'billerSlug' => $billerSlug ?: $billerType, // provide hint to API
         'channel' => 'WEB',
         'amount' => floatval($amount),
         'customerName' => $customerName,
