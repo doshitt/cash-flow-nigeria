@@ -3,9 +3,20 @@ import { Button } from "@/components/ui/button";
 interface TransactionSuccessProps {
   onDone: () => void;
   onShowReceipt: () => void;
+  token?: string;
+  tokenLabel?: string;
 }
 
-export const TransactionSuccess = ({ onDone, onShowReceipt }: TransactionSuccessProps) => {
+export const TransactionSuccess = ({ onDone, onShowReceipt, token, tokenLabel = "Prepaid Token" }: TransactionSuccessProps) => {
+  const handleCopy = async () => {
+    if (!token) return;
+    try {
+      await navigator.clipboard.writeText(token);
+    } catch {
+      // no-op
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex flex-col items-center justify-center min-h-[80vh] p-4 space-y-8">
@@ -18,6 +29,17 @@ export const TransactionSuccess = ({ onDone, onShowReceipt }: TransactionSuccess
           <h2 className="text-2xl font-bold text-foreground">
             Transaction Successful!!!
           </h2>
+          {token && (
+            <div className="w-full max-w-sm mx-auto border rounded-lg p-4 bg-muted/40">
+              <p className="text-sm text-muted-foreground mb-2">{tokenLabel}</p>
+              <div className="flex gap-2">
+                <div className="flex-1 px-3 py-2 rounded-md bg-background border text-foreground font-mono tracking-wider">
+                  {token}
+                </div>
+                <Button variant="outline" onClick={handleCopy}>Copy</Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-4 w-full max-w-sm">

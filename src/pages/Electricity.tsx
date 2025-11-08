@@ -226,7 +226,7 @@ export default function Electricity() {
   const handleReceiptBack = () => navigate("/");
 
   if (currentStep === "success") {
-    return <TransactionSuccess onDone={handleDone} onShowReceipt={handleShowReceipt} />;
+    return <TransactionSuccess onDone={handleDone} onShowReceipt={handleShowReceipt} token={transactionData?.token} tokenLabel={meterType === 'prepaid' ? 'Prepaid Token' : undefined} />;
   }
 
   if (currentStep === "receipt" && transactionData) {
