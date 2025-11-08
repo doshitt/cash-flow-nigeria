@@ -13,7 +13,7 @@ interface TVPackage {
   id: number;
   name: string;
   slug: string;
-  amount: number;
+  amount: number | null;
   billerId: number;
 }
 
@@ -272,9 +272,9 @@ export default function TV() {
                 <SelectValue placeholder={loading ? "Loading packages..." : "Choose subscription package"} />
               </SelectTrigger>
               <SelectContent>
-                {packages.map(pkg => (
+                {packages.filter(pkg => pkg.amount !== null).map(pkg => (
                   <SelectItem key={pkg.slug} value={pkg.slug}>
-                    {pkg.name} - ₦{pkg.amount.toLocaleString()}
+                    {pkg.name} - ₦{pkg.amount?.toLocaleString() || 'N/A'}
                   </SelectItem>
                 ))}
               </SelectContent>

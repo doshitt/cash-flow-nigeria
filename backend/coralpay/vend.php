@@ -32,7 +32,10 @@ try {
     $billerType = $input['billerType'] ?? null; // airtime, data, electricity, tv, betting
     $billerSlug = $input['billerSlug'] ?? null; // optional but recommended
     
-    if (!$userId || !$customerId || !$packageSlug || !$amount) {
+    // For betting, packageSlug is not required (they use amount-based top-ups)
+    $requiresPackage = !in_array($billerType, ['betting']);
+    
+    if (!$userId || !$customerId || !$amount || ($requiresPackage && !$packageSlug)) {
         echo json_encode([
             'success' => false,
             'message' => 'Missing required fields'
@@ -60,7 +63,6 @@ try {
     $vendData = [
         'paymentReference' => $paymentReference,
         'customerId' => $customerId,
-        'packageSlug' => $packageSlug,
         'billerSlug' => $billerSlug ?: $billerType, // provide hint to API
         'channel' => 'WEB',
         'amount' => floatval($amount),
@@ -68,6 +70,11 @@ try {
         'phoneNumber' => $phoneNumber,
         'email' => $email
     ];
+    
+    // Only add packageSlug if it exists (not needed for betting)
+    if ($packageSlug) {
+        $vendData['packageSlug'] = $packageSlug;
+    }
     
     // Deduct from wallet first
     $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");

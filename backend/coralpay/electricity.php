@@ -19,7 +19,8 @@ try {
     
     if ($action === 'providers') {
         // Get electricity providers from the correct group slug
-        $groupSlug = $_GET['groupSlug'] ?? 'ELECTRIC_DISCOS';
+        // Try multiple possible group slugs for electricity
+        $groupSlug = $_GET['groupSlug'] ?? 'ELECTRICITY';
         $result = CoralPayConfig::makeRequest("/billers/group/slug/{$groupSlug}");
         
         if ($result['success']) {
