@@ -96,10 +96,10 @@ export default function TV() {
   };
 
   const validateSmartcard = async () => {
-    if (!smartcardNumber || !selectedProvider || !selectedPackage) {
+    if (!smartcardNumber || !selectedProvider) {
       toast({
         title: "Validation Error",
-        description: "Please enter smartcard number, select provider and package",
+        description: "Please enter smartcard number and select provider",
         variant: "destructive"
       });
       return;
@@ -107,14 +107,21 @@ export default function TV() {
 
     setLoading(true);
     try {
+      // For TV validation, we need a package selected if available
+      const requestBody: any = {
+        customerId: smartcardNumber,
+        billerSlug: selectedProvider
+      };
+      
+      // Add productName if package is selected
+      if (selectedPackage) {
+        requestBody.productName = selectedPackage;
+      }
+
       const response = await fetch(`${getApiUrl('')}/coralpay/customer_lookup.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: smartcardNumber,
-          billerSlug: selectedProvider,
-          productName: selectedPackage // Required for TV validation
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const result = await response.json();
@@ -248,7 +255,7 @@ export default function TV() {
 
           <Button
             onClick={validateSmartcard}
-            disabled={loading || !smartcardNumber || !selectedProvider || !selectedPackage}
+            disabled={loading || !smartcardNumber || !selectedProvider}
             variant="outline"
             className="w-full"
           >

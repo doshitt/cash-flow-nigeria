@@ -18,36 +18,42 @@ try {
     $action = $_GET['action'] ?? '';
     
     if ($action === 'providers') {
-        // Try multiple possible group slugs for electricity until we find billers
-        $preferredSlugs = [
-            $_GET['groupSlug'] ?? 'ELECTRIC_BILLS',
-            'ELECTRIC_DISCOS',
-            'ELECTRICITY',
-            'ELECTRICITY_BILLS',
-            'ELECTRICITY_AND_GAS'
-        ];
-
-        $finalResult = null;
-        foreach ($preferredSlugs as $slug) {
-            $try = CoralPayConfig::makeRequest("/billers/group/slug/{$slug}");
-            if ($try['success'] && isset($try['data']['responseData']) && !empty($try['data']['responseData'])) {
-                $finalResult = $try;
-                break;
-            }
-            // Keep the last attempt for messaging if all fail
-            $finalResult = $try;
-        }
+        // Fetch all billers and filter for electricity providers
+        $result = CoralPayConfig::makeRequest("/billers");
         
-        if ($finalResult && $finalResult['success']) {
+        if ($result['success'] && isset($result['data']['responseData'])) {
+            $allBillers = $result['data']['responseData'];
+            
+            // Filter for electricity providers by name keywords
+            $electricityKeywords = ['electric', 'disco', 'ekedc', 'ikedc', 'aedc', 'phed', 'eedc', 'kedco', 'ibedc', 'jedc', 'kano'];
+            $electricityBillers = array_filter($allBillers, function($biller) use ($electricityKeywords) {
+                $name = strtolower($biller['name']);
+                foreach ($electricityKeywords as $keyword) {
+                    if (strpos($name, $keyword) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            
+            // Re-index array
+            $electricityBillers = array_values($electricityBillers);
+            
             echo json_encode([
                 'success' => true,
-                'data' => $finalResult['data']
+                'data' => [
+                    'error' => false,
+                    'status' => 'success',
+                    'message' => count($electricityBillers) > 0 ? 'Successfully fetched electricity providers' : 'No electricity providers found',
+                    'responseCode' => '00',
+                    'responseData' => $electricityBillers
+                ]
             ]);
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => ($finalResult['data']['message'] ?? 'Failed to fetch electricity providers') . ' - tried multiple slugs',
-                'error' => $finalResult['error'] ?? null
+                'message' => 'Failed to fetch billers',
+                'error' => $result['error'] ?? null
             ]);
         }
     } elseif ($action === 'packages') {

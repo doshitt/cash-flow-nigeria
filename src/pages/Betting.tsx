@@ -27,8 +27,10 @@ export default function Betting() {
   const [selectedProvider, setSelectedProvider] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [amount, setAmount] = useState("");
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     fetchProviders();
@@ -61,11 +63,58 @@ export default function Betting() {
     }
   };
 
-  const handleTopUp = async () => {
-    if (!selectedProvider || !customerId || !amount) {
+  const validateCustomer = async () => {
+    if (!selectedProvider || !customerId) {
       toast({
         title: "Incomplete Information",
-        description: "Please fill in all fields",
+        description: "Please select provider and enter customer ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const response = await fetch(`${getApiUrl('')}/coralpay/customer_lookup.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: customerId,
+          billerSlug: selectedProvider
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCustomerInfo(result.data);
+        toast({
+          title: "Customer Validated",
+          description: `Customer: ${result.data.customer?.customerName || 'Validated'}`
+        });
+      } else {
+        toast({
+          title: "Validation Failed",
+          description: result.message || "Invalid customer ID",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to validate customer",
+        variant: "destructive"
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleTopUp = async () => {
+    if (!customerInfo || !amount) {
+      toast({
+        title: "Incomplete Information",
+        description: "Please validate customer and enter amount",
         variant: "destructive"
       });
       return;
@@ -95,7 +144,7 @@ export default function Betting() {
           customerId: customerId,
           billerSlug: selectedProvider,
           amount: amountNum,
-          customerName: `${userFromStorage.first_name} ${userFromStorage.last_name}`,
+          customerName: customerInfo.customer?.customerName || `${userFromStorage.first_name} ${userFromStorage.last_name}`,
           phoneNumber: userFromStorage.phone,
           email: userFromStorage.email,
           billerType: 'betting'
@@ -114,6 +163,7 @@ export default function Betting() {
         setCustomerId("");
         setAmount("");
         setSelectedProvider("");
+        setCustomerInfo(null);
       } else {
         toast({
           title: "Transaction Failed",
@@ -211,6 +261,29 @@ export default function Betting() {
                 />
               </div>
 
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={validateCustomer}
+                disabled={isValidating || !selectedProvider || !customerId}
+              >
+                {isValidating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Validating...
+                  </>
+                ) : (
+                  "Validate Customer"
+                )}
+              </Button>
+
+              {customerInfo && (
+                <Card className="p-4 bg-muted">
+                  <p className="text-sm"><strong>Customer:</strong> {customerInfo.customer?.customerName || 'Validated'}</p>
+                  <p className="text-sm"><strong>Status:</strong> {customerInfo.customer?.status || 'Active'}</p>
+                </Card>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (₦)</Label>
                 <Input
@@ -220,6 +293,7 @@ export default function Betting() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   min="100"
+                  disabled={!customerInfo}
                 />
                 <p className="text-xs text-muted-foreground">
                   Minimum amount: ₦100
@@ -230,7 +304,7 @@ export default function Betting() {
                 className="w-full"
                 size="lg"
                 onClick={handleTopUp}
-                disabled={isLoading || !selectedProvider || !customerId || !amount}
+                disabled={isLoading || !customerInfo || !amount}
               >
                 {isLoading ? (
                   <>
