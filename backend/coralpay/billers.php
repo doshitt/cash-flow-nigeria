@@ -28,7 +28,12 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to fetch biller groups',
-                'error' => $result['error'] ?? 'Unknown error'
+                'error' => $result['error'] ?? 'Unknown error',
+                'debug' => [
+                    'request' => $result['request'] ?? null,
+                    'response' => $result['response'] ?? null,
+                    'httpCode' => $result['httpCode'] ?? null
+                ]
             ]);
         }
         exit();
@@ -58,7 +63,12 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to fetch billers',
-                'error' => $result['error'] ?? 'Unknown error'
+                'error' => $result['error'] ?? 'Unknown error',
+                'debug' => [
+                    'request' => $result['request'] ?? null,
+                    'response' => $result['response'] ?? null,
+                    'httpCode' => $result['httpCode'] ?? null
+                ]
             ]);
         }
         exit();
@@ -87,7 +97,12 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to fetch packages',
-                'error' => $result['error'] ?? 'Unknown error'
+                'error' => $result['error'] ?? 'Unknown error',
+                'debug' => [
+                    'request' => $result['request'] ?? null,
+                    'response' => $result['response'] ?? null,
+                    'httpCode' => $result['httpCode'] ?? null
+                ]
             ]);
         }
         exit();

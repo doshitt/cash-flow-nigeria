@@ -45,16 +45,37 @@ class CoralPayConfig {
         
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         
+        // Log request details
+        $requestLog = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'method' => $method,
+            'url' => $url,
+            'headers' => $headers,
+            'body' => $data
+        ];
+        error_log("CoralPay Request: " . json_encode($requestLog, JSON_PRETTY_PRINT));
+        
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
         
+        // Log response details
+        $responseLog = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'httpCode' => $httpCode,
+            'error' => $error,
+            'response' => $response
+        ];
+        error_log("CoralPay Response: " . json_encode($responseLog, JSON_PRETTY_PRINT));
+        
         if ($error) {
             return [
                 'success' => false,
                 'error' => $error,
-                'httpCode' => $httpCode
+                'httpCode' => $httpCode,
+                'request' => $requestLog,
+                'response' => null
             ];
         }
         
@@ -62,7 +83,9 @@ class CoralPayConfig {
         return [
             'success' => $httpCode >= 200 && $httpCode < 300,
             'data' => $result,
-            'httpCode' => $httpCode
+            'httpCode' => $httpCode,
+            'request' => $requestLog,
+            'response' => $response
         ];
     }
 }
