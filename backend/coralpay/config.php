@@ -34,13 +34,13 @@ class CoralPayConfig {
         
         $headers = [
             'Authorization: ' . self::getAuthHeader(),
-            'Content-Type: application/json',
             'Accept: application/json'
         ];
         
         if ($method === 'POST') {
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            $headers[] = 'Content-Type: application/json';
         }
         
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
