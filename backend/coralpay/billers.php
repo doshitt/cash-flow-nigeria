@@ -1,4 +1,9 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -9,11 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once '../config/database.php';
-require_once 'config.php';
-
 try {
-    $pdo = new PDO($dsn, $username, $password, $options);
+    require_once 'config.php';
+    
+    // Database not needed for billers/packages endpoints, only load if needed
+    // require_once '../config/database.php';
+    // $pdo = new PDO($dsn, $username, $password, $options);
     
     // Get biller groups
     if (isset($_GET['action']) && $_GET['action'] === 'groups') {
@@ -110,9 +116,12 @@ try {
     
 } catch (Exception $e) {
     http_response_code(500);
+    error_log("Billers.php error: " . $e->getMessage());
+    error_log("Billers.php trace: " . $e->getTraceAsString());
     echo json_encode([
         'success' => false,
-        'message' => 'Server error: ' . $e->getMessage()
+        'message' => 'Server error: ' . $e->getMessage(),
+        'trace' => $e->getTraceAsString()
     ]);
 }
 ?>
