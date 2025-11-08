@@ -255,7 +255,7 @@ export default function TV() {
 
           <Button
             onClick={validateSmartcard}
-            disabled={loading || !smartcardNumber || !selectedProvider}
+            disabled={loading || !smartcardNumber || !selectedProvider || !selectedPackage}
             variant="outline"
             className="w-full"
           >

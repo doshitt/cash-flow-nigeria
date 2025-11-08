@@ -138,12 +138,12 @@ export default function Electricity() {
     }
 
     const amountValue = parseFloat(amount);
-    const minAmount = customerInfo.minPayableAmount || 500;
+    const minAmount = 1000;
 
     if (amountValue < minAmount) {
       toast({
         title: "Invalid Amount",
-        description: `Minimum amount is ₦${minAmount}`,
+        description: `Minimum amount is ₦${minAmount.toLocaleString()}`,
         variant: "destructive"
       });
       return;
@@ -304,12 +304,12 @@ export default function Electricity() {
             <Card className="p-4 bg-muted">
               <p className="text-sm"><strong>Customer:</strong> {customerInfo.customer?.customerName}</p>
               <p className="text-sm"><strong>Address:</strong> {customerInfo.customer?.address}</p>
-              {customerInfo.arrearsBalance > 0 && (
+              {customerInfo.customer?.arrearsBalance > 0 && (
                 <p className="text-sm text-destructive">
-                  <strong>Arrears:</strong> ₦{customerInfo.arrearsBalance?.toLocaleString()}
+                  <strong>Arrears:</strong> ₦{customerInfo.customer?.arrearsBalance?.toLocaleString()}
                 </p>
               )}
-              <p className="text-sm"><strong>Min Amount:</strong> ₦{customerInfo.minPayableAmount?.toLocaleString()}</p>
+              <p className="text-sm"><strong>Min Amount:</strong> ₦1,000</p>
             </Card>
           )}
 
@@ -319,9 +319,11 @@ export default function Electricity() {
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
+              placeholder="Enter amount (min ₦1,000)"
               disabled={!customerInfo}
+              min="1000"
             />
+            <p className="text-xs text-muted-foreground">Minimum: ₦1,000</p>
           </div>
 
           <Button

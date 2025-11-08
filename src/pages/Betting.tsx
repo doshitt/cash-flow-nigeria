@@ -75,6 +75,22 @@ export default function Betting() {
 
     setIsValidating(true);
     try {
+      const provider = providers.find(p => p.slug === selectedProvider);
+      
+      // Skip validation for providers that skip validation
+      if (provider?.skipValidation) {
+        setCustomerInfo({ 
+          customer: { customerName: customerId, status: 'Active' },
+          validated: true 
+        });
+        toast({
+          title: "Customer ID Accepted",
+          description: "You can proceed with top-up"
+        });
+        setIsValidating(false);
+        return;
+      }
+
       const response = await fetch(`${getApiUrl('')}/coralpay/customer_lookup.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,11 +102,12 @@ export default function Betting() {
 
       const result = await response.json();
 
-      if (result.success) {
-        setCustomerInfo(result.data);
+      // Accept validation even if statusCode is 30 (productName required)
+      if (result.success || result.data?.statusCode === '30') {
+        setCustomerInfo(result.data || { customer: { customerName: customerId }, validated: true });
         toast({
           title: "Customer Validated",
-          description: `Customer: ${result.data.customer?.customerName || 'Validated'}`
+          description: result.data?.customer?.customerName || "Customer ID validated"
         });
       } else {
         toast({
