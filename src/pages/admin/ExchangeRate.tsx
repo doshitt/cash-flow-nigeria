@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TrendingUp, TrendingDown, RefreshCw, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { getAdminApiUrl } from "@/config/admin-api";
 
 interface ExchangeRate {
   id: string;
@@ -45,7 +46,7 @@ export default function ExchangeRate() {
 
   const fetchRates = async () => {
     try {
-      const response = await fetch('https://back.tesapay.com/admin/exchange_rates.php');
+      const response = await fetch(getAdminApiUrl('/exchange_rates.php'));
       const data = await response.json();
       if (data.success) {
         setRates(data.data);
@@ -63,7 +64,7 @@ export default function ExchangeRate() {
 
   const handleSubmit = async () => {
     try {
-      const response = await fetch('https://back.tesapay.com/admin/exchange_rates.php', {
+      const response = await fetch(getAdminApiUrl('/exchange_rates.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

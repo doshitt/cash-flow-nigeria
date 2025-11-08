@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminApiUrl } from "@/config/admin-api";
 
 interface Customer {
   id: string;
@@ -63,7 +64,7 @@ export default function Customers() {
   const fetchCustomers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`https://back.tesapay.com/admin/customers.php?search=${searchTerm}`);
+      const response = await fetch(`${getAdminApiUrl('/customers.php')}?search=${encodeURIComponent(searchTerm)}`);
       const data = await response.json();
       
       if (data.success) {
@@ -108,7 +109,7 @@ export default function Customers() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('https://back.tesapay.com/admin/add_funds.php', {
+      const response = await fetch(getAdminApiUrl('/add_funds.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

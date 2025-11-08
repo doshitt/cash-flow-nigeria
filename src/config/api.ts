@@ -1,7 +1,7 @@
 // API Configuration for TesaPay
 export const API_CONFIG = {
   // Backend base URL - change this when deploying to production
-  BACKEND_BASE_URL: 'https://back.tesapay.com',
+  BACKEND_BASE_URL: '/backend',
   
   // API endpoints
   ENDPOINTS: {

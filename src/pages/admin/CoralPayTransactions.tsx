@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { getAdminApiUrl } from "@/config/admin-api";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +62,7 @@ export default function CoralPayTransactions() {
         biller_type: billerFilter
       });
       
-      const response = await fetch(`https://back.tesapay.com/admin/coralpay_transactions.php?${params}`);
+      const response = await fetch(`${getAdminApiUrl('/coralpay_transactions.php')}?${params}`);
       const data = await response.json();
       
       if (data.success) {

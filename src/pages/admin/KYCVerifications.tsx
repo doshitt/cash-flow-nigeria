@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const API_BASE = "https://back.tesapay.com";
+import { getAdminApiUrl } from "@/config/admin-api";
 
 export default function KYCVerifications() {
   const queryClient = useQueryClient();
@@ -27,9 +27,10 @@ export default function KYCVerifications() {
   const { data: submissions, isLoading } = useQuery({
     queryKey: ['admin-kyc-submissions', statusFilter],
     queryFn: async () => {
+      const baseUrl = getAdminApiUrl('/kyc_verifications.php');
       const url = statusFilter === 'all' 
-        ? `${API_BASE}/admin/kyc_verifications.php`
-        : `${API_BASE}/admin/kyc_verifications.php?status=${statusFilter}`;
+        ? baseUrl
+        : `${baseUrl}?status=${encodeURIComponent(statusFilter)}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -40,7 +41,7 @@ export default function KYCVerifications() {
   // Fetch detailed KYC info
   const viewKYCDetails = useMutation({
     mutationFn: async (kycId: number) => {
-      const response = await fetch(`${API_BASE}/admin/kyc_verifications.php`, {
+      const response = await fetch(getAdminApiUrl('/kyc_verifications.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kyc_id: kycId }),
@@ -58,7 +59,7 @@ export default function KYCVerifications() {
     mutationFn: async () => {
       if (!selectedKYC || !reviewAction) return;
       
-      const response = await fetch(`${API_BASE}/admin/kyc_verifications.php`, {
+      const response = await fetch(getAdminApiUrl('/kyc_verifications.php'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -280,7 +281,7 @@ export default function KYCVerifications() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`${API_BASE}/kyc/view_document.php?id=${doc.id}`, '_blank')}
+                          onClick={() => window.open(`${getAdminApiUrl('/kyc/view_document.php')}?id=${doc.id}`, '_blank')}
                         >
                           View
                         </Button>

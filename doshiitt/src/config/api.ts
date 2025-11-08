@@ -1,7 +1,7 @@
 // API Configuration for DoshiTT Admin Dashboard
 export const ADMIN_API_CONFIG = {
   // Backend base URL - change this when deploying to production
-  BACKEND_BASE_URL: 'https://back.tesapay.com/admin',
+  BACKEND_BASE_URL: '/backend/admin',
   
   // API endpoints
   ENDPOINTS: {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Download, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getAdminApiUrl } from "@/config/api";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +62,7 @@ export default function CoralPayTransactions() {
         biller_type: billerFilter
       });
       
-      const response = await fetch(`https://back.tesapay.com/admin/coralpay_transactions.php?${params}`);
+      const response = await fetch(`${getAdminApiUrl('/coralpay_transactions.php')}?${params}`);
       const data = await response.json();
       
       if (data.success) {

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Search, Filter, UserPlus, Eye, MoreHorizontal, Mail, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getAdminApiUrl } from "@/config/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,7 +70,7 @@ export default function Customers() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://back.tesapay.com/admin/customers.php?search=${searchTerm}`);
+      const response = await fetch(`${getAdminApiUrl('/customers.php')}?search=${encodeURIComponent(searchTerm)}`);
       const data = await response.json();
       
       if (data.success) {
@@ -102,7 +103,7 @@ export default function Customers() {
 
     try {
       setLoading(true);
-      const response = await fetch('https://back.tesapay.com/admin/add_funds.php', {
+      const response = await fetch(getAdminApiUrl('/add_funds.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
