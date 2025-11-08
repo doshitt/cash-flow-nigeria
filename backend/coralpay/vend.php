@@ -58,6 +58,29 @@ try {
     
     // Generate payment reference
     $paymentReference = 'TESA' . time() . rand(1000, 9999);
+
+    // For betting without explicit package, attempt to auto-select a suitable package
+    if ($billerType === 'betting' && !$packageSlug && $billerSlug) {
+        $pkgRes = CoralPayConfig::makeRequest("/packages/biller/slug/{$billerSlug}");
+        if ($pkgRes['success'] && isset($pkgRes['data']['responseData']) && is_array($pkgRes['data']['responseData'])) {
+            $pkgs = $pkgRes['data']['responseData'];
+            $chosen = null;
+            // Prefer variable-amount packages (amount == null)
+            foreach ($pkgs as $p) {
+                if (!isset($p['amount']) || $p['amount'] === null) { $chosen = $p; break; }
+            }
+            // Fallback: look for wallet/topup/fund keywords
+            if (!$chosen) {
+                foreach ($pkgs as $p) {
+                    $n = strtoupper($p['name'] ?? '');
+                    if (str_contains($n, 'WALLET') || str_contains($n, 'TOP') || str_contains($n, 'FUND')) { $chosen = $p; break; }
+                }
+            }
+            // Final fallback: first package
+            if (!$chosen && count($pkgs) > 0) { $chosen = $pkgs[0]; }
+            if ($chosen && !empty($chosen['slug'])) { $packageSlug = $chosen['slug']; }
+        }
+    }
     
     // Prepare vend request
     $vendData = [
@@ -71,7 +94,7 @@ try {
         'email' => $email
     ];
     
-    // Only add packageSlug if it exists (not needed for betting)
+    // Only add packageSlug if it exists (betting now auto-selects one)
     if ($packageSlug) {
         $vendData['packageSlug'] = $packageSlug;
     }

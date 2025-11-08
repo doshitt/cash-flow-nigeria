@@ -18,21 +18,36 @@ try {
     $action = $_GET['action'] ?? '';
     
     if ($action === 'providers') {
-        // Get electricity providers from the correct group slug
-        // Try multiple possible group slugs for electricity
-        $groupSlug = $_GET['groupSlug'] ?? 'ELECTRIC_BILLS';
-        $result = CoralPayConfig::makeRequest("/billers/group/slug/{$groupSlug}");
+        // Try multiple possible group slugs for electricity until we find billers
+        $preferredSlugs = [
+            $_GET['groupSlug'] ?? 'ELECTRIC_BILLS',
+            'ELECTRIC_DISCOS',
+            'ELECTRICITY',
+            'ELECTRICITY_BILLS',
+            'ELECTRICITY_AND_GAS'
+        ];
+
+        $finalResult = null;
+        foreach ($preferredSlugs as $slug) {
+            $try = CoralPayConfig::makeRequest("/billers/group/slug/{$slug}");
+            if ($try['success'] && isset($try['data']['responseData']) && !empty($try['data']['responseData'])) {
+                $finalResult = $try;
+                break;
+            }
+            // Keep the last attempt for messaging if all fail
+            $finalResult = $try;
+        }
         
-        if ($result['success']) {
+        if ($finalResult && $finalResult['success']) {
             echo json_encode([
                 'success' => true,
-                'data' => $result['data']
+                'data' => $finalResult['data']
             ]);
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => $result['message'] ?? 'Failed to fetch electricity providers',
-                'error' => $result['error'] ?? null
+                'message' => ($finalResult['data']['message'] ?? 'Failed to fetch electricity providers') . ' - tried multiple slugs',
+                'error' => $finalResult['error'] ?? null
             ]);
         }
     } elseif ($action === 'packages') {

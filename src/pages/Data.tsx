@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Bell } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import TransactionReceipt from "@/components/TransactionReceipt";
+import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { toast } from "@/hooks/use-toast";
 import { useFeatures } from "@/hooks/useFeatures";
 import { API_CONFIG, getApiUrl } from "@/config/api";
@@ -25,9 +27,22 @@ interface NetworkProvider {
   groupId: number;
 }
 
+interface TransactionData {
+  phoneNumber: string;
+  amount: number;
+  date: string;
+  time: string;
+  status: string;
+  operator: string;
+  transactionId: string;
+}
+
+type DataStep = "purchase" | "success" | "receipt";
+
 export default function Data() {
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatures();
+  const [currentStep, setCurrentStep] = useState<DataStep>("purchase");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("");
@@ -35,6 +50,7 @@ export default function Data() {
   const [networks, setNetworks] = useState<NetworkProvider[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(true);
+  const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
 
   useEffect(() => {
     if (!isFeatureEnabled('data')) {
@@ -138,24 +154,23 @@ export default function Data() {
       const result = await response.json();
 
       if (result.success) {
+        const now = new Date();
+        const transaction = {
+          phoneNumber,
+          amount: Number(selectedPkg.amount || 0),
+          date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+          time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          status: 'Successful',
+          operator: networks.find(n => n.slug === selectedNetwork)?.name || selectedNetwork,
+          transactionId: result.data?.transaction_id || result.data?.payment_reference || ''
+        } as TransactionData;
+
+        setTransactionData(transaction);
+        setCurrentStep("success");
+
         toast({
           title: "Success!",
           description: `Data bundle purchased successfully for ${phoneNumber}`
-        });
-        
-        // Navigate to success screen with transaction details
-        navigate('/', { 
-          state: { 
-            showReceipt: true,
-            transaction: {
-              type: 'Data Purchase',
-              amount: selectedPkg.amount,
-              recipient: phoneNumber,
-              reference: result.data?.payment_reference,
-              status: 'completed',
-              date: new Date().toISOString()
-            }
-          }
         });
       } else {
         toast({
@@ -174,6 +189,21 @@ export default function Data() {
       setLoading(false);
     }
   };
+
+  // Success and Receipt views
+  const handleDone = () => navigate("/");
+  const handleShowReceipt = () => setCurrentStep("receipt");
+  const handleReceiptBack = () => navigate("/");
+
+  if (currentStep === "success") {
+    return <TransactionSuccess onDone={handleDone} onShowReceipt={handleShowReceipt} />;
+  }
+
+  if (currentStep === "receipt" && transactionData) {
+    return (
+      <TransactionReceipt onBack={handleReceiptBack} transactionData={transactionData} />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
