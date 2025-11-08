@@ -20,6 +20,13 @@ interface AirtimePackage {
   billerId: number;
 }
 
+interface NetworkBiller {
+  id: number;
+  name: string;
+  slug: string;
+  groupId: number;
+}
+
 interface TransactionData {
   phoneNumber: string;
   amount: number;
@@ -42,13 +49,8 @@ export default function Airtime() {
   const [packages, setPackages] = useState<AirtimePackage[]>([]);
   const [loading, setLoading] = useState(false);
   const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
-
-  const networks = [
-    { value: "MTN-VTU", label: "MTN" },
-    { value: "AIRTEL-VTU", label: "Airtel" },
-    { value: "GLO-VTU", label: "Glo" },
-    { value: "9MOBILE-VTU", label: "9Mobile" }
-  ];
+  const [networks, setNetworks] = useState<NetworkBiller[]>([]);
+  const [loadingNetworks, setLoadingNetworks] = useState(true);
 
   const predefinedAmounts = [100, 200, 500, 1000, 2000, 5000];
 
@@ -56,7 +58,37 @@ export default function Airtime() {
     if (!isFeatureEnabled('airtime')) {
       navigate('/');
     }
+    fetchNetworks();
   }, [isFeatureEnabled, navigate]);
+
+  const fetchNetworks = async () => {
+    setLoadingNetworks(true);
+    try {
+      const response = await fetch(
+        `${getApiUrl('')}/coralpay/billers.php?action=billers&groupSlug=airtime_and_data`
+      );
+      const result = await response.json();
+      
+      if (result.success && result.data?.responseData) {
+        setNetworks(result.data.responseData);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load networks. Using defaults.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching networks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load networks. Please refresh.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingNetworks(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedNetwork) {
@@ -139,7 +171,7 @@ export default function Airtime() {
           date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
           time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           status: "Successful",
-          operator: selectedNetwork.replace('-VTU', ''),
+          operator: networks.find(n => n.slug === selectedNetwork)?.name || selectedNetwork,
           transactionId: result.data.transaction_id
         };
 
@@ -218,14 +250,14 @@ export default function Airtime() {
         <Card className="p-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Select Network</label>
-            <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
+            <Select value={selectedNetwork} onValueChange={setSelectedNetwork} disabled={loadingNetworks}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose network provider" />
+                <SelectValue placeholder={loadingNetworks ? "Loading networks..." : "Choose network provider"} />
               </SelectTrigger>
               <SelectContent>
                 {networks.map(network => (
-                  <SelectItem key={network.value} value={network.value}>
-                    {network.label}
+                  <SelectItem key={network.slug} value={network.slug}>
+                    {network.name}
                   </SelectItem>
                 ))}
               </SelectContent>

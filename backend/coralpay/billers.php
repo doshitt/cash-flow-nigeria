@@ -34,10 +34,18 @@ try {
         exit();
     }
     
-    // Get billers
+    // Get billers by group slug
     if (isset($_GET['action']) && $_GET['action'] === 'billers') {
+        $groupSlug = $_GET['groupSlug'] ?? null;
         $groupId = $_GET['groupId'] ?? null;
-        $endpoint = $groupId ? "/billers/group/{$groupId}" : '/billers';
+        
+        if ($groupSlug) {
+            $endpoint = "/billers/group/slug/{$groupSlug}";
+        } elseif ($groupId) {
+            $endpoint = "/billers/group/{$groupId}";
+        } else {
+            $endpoint = '/billers';
+        }
         
         $result = CoralPayConfig::makeRequest($endpoint);
         
