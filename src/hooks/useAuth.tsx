@@ -51,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           logout();
         }
       } catch (error) {
+        // Silently fail and allow login page to load
+        console.error('Session check failed:', error);
         logout();
       }
     }
@@ -72,6 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       });
 
+      if (!response.ok) {
+        console.error('Session check failed with status:', response.status);
+        return false;
+      }
+
       const data = await response.json();
 
       if (data.success && data.session_valid) {
@@ -84,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     } catch (error) {
+      console.error('Session check error:', error);
       return false;
     }
   };
