@@ -99,8 +99,8 @@ try {
         $vendData['packageSlug'] = $packageSlug;
     }
     
-    // For providers that enforce prior enquiry, perform lookup right before payment
-    if (in_array($billerType, ['betting', 'tv'])) {
+    // Require enquiry for TV only; betting proceeds without strict lookup to avoid false negatives
+    if ($billerType === 'tv') {
         $lookupPayload = [
             'customerId' => $customerId,
             'billerSlug' => $billerSlug ?: $billerType
