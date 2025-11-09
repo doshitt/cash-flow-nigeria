@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CheckCircle, AlertCircle, Gift, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-
+import { getApiUrl } from "@/config/api";
 interface Notification {
   id: string;
   type: "inflow" | "outflow" | "voucher_redeemed" | "system" | "success";
@@ -40,7 +40,7 @@ export const NotificationPopup = ({ children }: NotificationPopupProps) => {
   const loadNotifications = async () => {
     try {
       const token = localStorage.getItem('tesapay_session_token') || '';
-      const res = await fetch('/backend/notifications.php', {
+      const res = await fetch(getApiUrl('/notifications.php'), {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();

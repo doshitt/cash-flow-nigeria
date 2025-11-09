@@ -31,8 +31,8 @@ try {
     }
     
     // Get exchange rate
-    $stmt = $pdo->prepare("SELECT rate FROM exchange_rates WHERE from_currency = ? AND to_currency = ? AND is_active = 1");
-    $stmt->execute([$fromCurrency, $toCurrency]);
+$stmt = $pdo->prepare("SELECT rate FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
+$stmt->execute([$fromCurrency, $toCurrency]);
     $exchangeRate = $stmt->fetch();
     
     if (!$exchangeRate) {
