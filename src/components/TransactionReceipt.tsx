@@ -84,26 +84,25 @@ export default function TransactionReceipt({
   };
 
   const shareReceipt = async () => {
-    const shareData = {
-      title: 'TesaPay Receipt',
-      text: `Transaction ${transactionId}\nAmount: ₦${amount}\nType: ${type}\nStatus: ${status}`,
-    };
-
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        // Fallback: copy to clipboard
-        await navigator.clipboard.writeText(
-          `TesaPay Transaction Receipt\n\nTransaction ID: ${transactionId}\nAmount: ₦${amount}\nType: ${type}\nStatus: ${status}\nDate: ${date}`
-        );
-        toast({
-          title: "Copied",
-          description: "Receipt details copied to clipboard"
-        });
+      if (receiptRef.current) {
+        const canvas = await html2canvas(receiptRef.current, { scale: 2, backgroundColor: '#ffffff' });
+        const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (blob && (navigator as any).canShare && (navigator as any).canShare({ files: [new File([blob], `TesaPay_Receipt_${transactionId}.png`, { type: 'image/png' })] })) {
+          const file = new File([blob], `TesaPay_Receipt_${transactionId}.png`, { type: 'image/png' });
+          // @ts-ignore Web Share Level 2
+          await navigator.share({ title: 'TesaPay Receipt', files: [file], text: `Transaction ${transactionId} - ${status}` });
+          return;
+        }
       }
+      // Fallback: plain text copy
+      await navigator.clipboard.writeText(
+        `TesaPay Transaction Receipt\n\nTransaction ID: ${transactionId}\nAmount: ₦${amount}\nType: ${type}\nStatus: ${status}\nDate: ${time ? `${date} ${time}` : new Date(date).toLocaleString()}`
+      );
+      toast({ title: 'Copied', description: 'Receipt details copied to clipboard' });
     } catch (error) {
       console.error('Error sharing:', error);
+      toast({ title: 'Share failed', description: 'Could not share receipt', variant: 'destructive' });
     }
   };
 

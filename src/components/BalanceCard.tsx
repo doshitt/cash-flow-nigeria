@@ -11,22 +11,16 @@ import {
 import { AddMoneyModal } from "./AddMoneyModal";
 import { useNavigate } from "react-router-dom";
 
-const currencies = [
-  { code: "NGN", name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬", balance: 75000000 },
-  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸", balance: 50000 },
-  { code: "GBP", name: "British Pound", symbol: "£", flag: "🇬🇧", balance: 35000 },
-  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺", balance: 42000 },
-  { code: "GHS", name: "Ghanaian Cedi", symbol: "₵", flag: "🇬🇭", balance: 125000 }
-];
+import { useAuth } from "@/hooks/useAuth";
 
-interface BalanceCardProps {
-  balance?: number;
-  currency?: string;
-}
+interface BalanceCardProps {}
 
-export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => {
+
+export const BalanceCard = () => {
+  const { wallets } = useAuth();
   const [showBalance, setShowBalance] = useState(true);
-  const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
+  const defaultCurr = wallets.find(w => w.currency === 'NGN')?.currency || wallets[0]?.currency || 'NGN';
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(defaultCurr);
   const [showAddMoney, setShowAddMoney] = useState(false);
   const navigate = useNavigate();
 
@@ -38,24 +32,22 @@ export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="flex items-center gap-1 text-white hover:bg-white/20 p-2 h-auto">
-                <span className="text-xs">{selectedCurrency.flag}</span>
-                <span className="text-xs">{selectedCurrency.code}</span>
+                <span className="text-xs">{selectedCurrency}</span>
                 <ChevronDown size={12} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-white border border-gray-200 shadow-lg z-50">
-              {currencies.map((curr) => (
+              {wallets.map((w) => (
                 <DropdownMenuItem
-                  key={curr.code}
-                  onClick={() => setSelectedCurrency(curr)}
+                  key={w.id}
+                  onClick={() => setSelectedCurrency(w.currency)}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
                 >
-                  <span className="text-lg">{curr.flag}</span>
                   <div className="flex-1">
-                    <div className="font-medium text-sm">{curr.name}</div>
-                    <div className="text-xs text-gray-500">{curr.symbol}{curr.balance.toLocaleString()}</div>
+                    <div className="font-medium text-sm">{w.currency}</div>
+                    <div className="text-xs text-gray-500">{w.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
-                  <span className="text-xs text-gray-400">{curr.code}</span>
+                  <span className="text-xs text-gray-400">{w.wallet_type}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -72,9 +64,9 @@ export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => 
       </div>
       
       <div className="flex items-center gap-2 mb-6">
-        <span className="currency-symbol text-2xl">{selectedCurrency.symbol}</span>
+        <span className="currency-symbol text-2xl">{selectedCurrency}</span>
         <span className="text-3xl font-bold">
-          {showBalance ? selectedCurrency.balance.toLocaleString('en-NG', { minimumFractionDigits: 1 }) : "••••••"}
+          {showBalance ? (wallets.find(w => w.currency === selectedCurrency)?.balance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 }) : "••••••"}
         </span>
       </div>
 
@@ -100,7 +92,7 @@ export const BalanceCard = ({ balance, currency = "₦" }: BalanceCardProps) => 
       <AddMoneyModal 
         open={showAddMoney} 
         onOpenChange={setShowAddMoney}
-        selectedCurrency={selectedCurrency.code}
+        selectedCurrency={selectedCurrency}
       />
     </Card>
   );

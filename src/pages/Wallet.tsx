@@ -10,10 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddMoneyModal } from "@/components/AddMoneyModal";
 import { useAuth } from "@/hooks/useAuth";
 import { ConversionScreen } from "@/components/ConversionScreen";
+import { getApiUrl, API_CONFIG } from "@/config/api";
 
 const currencyInfo = {
   USD: { name: "US Dollar", symbol: "$", flag: "🇺🇸" },
@@ -23,36 +24,8 @@ const currencyInfo = {
   GHS: { name: "Ghanaian Cedi", symbol: "₵", flag: "🇬🇭" }
 };
 
-const transactions = [
-  {
-    id: 1,
-    merchant: "Starbucks",
-    category: "Coffee & restaurants",
-    amount: "-1.33 USD",
-    icon: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=40&h=40&fit=crop"
-  },
-  {
-    id: 2,
-    merchant: "Starbucks",
-    category: "Coffee & restaurants", 
-    amount: "-1.33 USD",
-    icon: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=40&h=40&fit=crop"
-  },
-  {
-    id: 3,
-    merchant: "Starbucks",
-    category: "Coffee & restaurants",
-    amount: "-1.33 USD", 
-    icon: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=40&h=40&fit=crop"
-  },
-  {
-    id: 4,
-    merchant: "Starbucks",
-    category: "Coffee & restaurants",
-    amount: "-1.33 USD",
-    icon: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=40&h=40&fit=crop"
-  }
-];
+// Replace dummy transactions with live fetched data
+
 
 const Wallet = () => {
   const { user, wallets } = useAuth();
@@ -67,16 +40,18 @@ const Wallet = () => {
   const selectedWallet = wallets?.find(w => w.currency === selectedCurrency);
   const currentInfo = currencyInfo[selectedCurrency as keyof typeof currencyInfo];
 
-  if (showConversion) {
-    return (
-      <div className="min-h-screen bg-background pb-20 max-w-md mx-auto p-4">
-        <ConversionScreen 
-          onBack={() => setShowConversion(false)} 
-          selectedCurrency={selectedCurrency}
-        />
-      </div>
-    );
-  }
+  useEffect(() => {
+    const loadTx = async () => {
+      try {
+        const res = await fetch(getApiUrl('/transactions.php') + `?currency=${selectedCurrency}&limit=5`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('tesapay_session_token') || ''}` }
+        });
+        const data = await res.json();
+        if (data.success) setTransactions(data.data);
+      } catch {}
+    };
+    loadTx();
+  }, [selectedCurrency]);
 
   return (
     <div className="min-h-screen bg-background pb-20 max-w-md mx-auto relative">
@@ -118,29 +93,24 @@ const Wallet = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-white/90 hover:text-white hover:bg-white/10">
-                <span className="text-sm">{currentInfo?.flag}</span>
-                <span className="text-sm font-medium">{currentInfo?.name}</span>
+                <span className="text-sm">{selectedCurrency}</span>
                 <ChevronDown size={16} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-white border border-gray-200 shadow-lg z-50">
-              {wallets?.map((wallet) => {
-                const info = currencyInfo[wallet.currency as keyof typeof currencyInfo];
-                return (
-                  <DropdownMenuItem
-                    key={wallet.id}
-                    onClick={() => setSelectedCurrency(wallet.currency)}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
-                  >
-                    <span className="text-lg">{info?.flag}</span>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{info?.name}</div>
-                      <div className="text-xs text-gray-500">{info?.symbol}{Number(wallet.balance).toLocaleString()}</div>
-                    </div>
-                    <span className="text-xs text-gray-400">{wallet.currency}</span>
-                  </DropdownMenuItem>
-                );
-              })}
+              {wallets?.map((wallet) => (
+                <DropdownMenuItem
+                  key={wallet.id}
+                  onClick={() => setSelectedCurrency(wallet.currency)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{wallet.currency}</div>
+                    <div className="text-xs text-gray-500">{Number(wallet.balance).toLocaleString()}</div>
+                  </div>
+                  <span className="text-xs text-gray-400">{wallet.wallet_type}</span>
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -148,7 +118,7 @@ const Wallet = () => {
         {/* Balance Display */}
         <div className="text-center mb-8">
           <div className="text-4xl font-bold mb-2">
-            {currentInfo?.symbol}{formatBalance(Number(selectedWallet?.balance || "0"))}
+            {formatBalance(Number(wallets?.find(w => w.currency === selectedCurrency)?.balance || 0))}
           </div>
           <div className="text-white/80 text-sm">
             Available Balance
@@ -189,28 +159,30 @@ const Wallet = () => {
       {/* Transactions Section */}
       <div className="px-4 pt-6">
         <h3 className="text-lg font-semibold mb-4">Transactions</h3>
-        
         <div className="space-y-3">
-          {transactions.map((transaction) => (
-            <Card key={transaction.id} className="p-4 border-0 bg-muted/30">
+          {transactions.map((tx) => (
+            <Card key={tx.transaction_id} className="p-4 border-0 bg-muted/30">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">
-                    S
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <div className="text-xs font-bold">
+                    {tx.transaction_type?.slice(0, 1).toUpperCase()}
                   </div>
                 </div>
-                
                 <div className="flex-1">
-                  <div className="font-medium text-sm">{transaction.merchant}</div>
-                  <div className="text-muted-foreground text-xs">{transaction.category}</div>
+                  <div className="font-medium text-sm">{tx.description || tx.transaction_type}</div>
+                  <div className="text-muted-foreground text-xs">{new Date(tx.created_at).toLocaleString()}</div>
                 </div>
-                
                 <div className="text-right">
-                  <div className="font-medium text-sm">{transaction.amount}</div>
+                  <div className="font-medium text-sm">{tx.currency} {Number(tx.amount).toLocaleString()}</div>
                 </div>
               </div>
             </Card>
           ))}
+          {transactions.length === 0 && (
+            <Card className="p-4 border-0 bg-muted/30">
+              <div className="text-sm text-muted-foreground">No transactions yet</div>
+            </Card>
+          )}
         </div>
       </div>
 

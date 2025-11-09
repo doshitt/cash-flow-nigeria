@@ -99,8 +99,25 @@ try {
         $vendData['packageSlug'] = $packageSlug;
     }
     
-    // Skip pre-vend lookup entirely - validation already done on frontend
-    // The vend API will handle validation internally
+    // Perform required pre-vend enquiry for TV and Betting
+    if (in_array(strtolower($billerType), ['tv', 'betting'])) {
+        $lookupPayload = [
+            'customerId' => $customerId,
+            'billerSlug' => $billerSlug ?: $billerType
+        ];
+        // Some providers require product/package name on enquiry (e.g., TV)
+        if (!empty($packageSlug)) {
+            $lookupPayload['productName'] = $packageSlug;
+        }
+        $lookupRes = CoralPayConfig::makeRequest('/transactions/customer-lookup', 'POST', $lookupPayload);
+        if (!($lookupRes['success'] && isset($lookupRes['data']['responseCode']) && $lookupRes['data']['responseCode'] === '00')) {
+            echo json_encode([
+                'success' => false,
+                'message' => $lookupRes['data']['message'] ?? ($lookupRes['error'] ?? 'Customer enquiry failed')
+            ]);
+            exit();
+        }
+    }
     
     // Deduct from wallet first
     $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");

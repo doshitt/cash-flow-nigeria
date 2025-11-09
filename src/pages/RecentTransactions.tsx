@@ -26,78 +26,51 @@ interface Transaction {
   reference: string;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    type: "Transfer Received",
-    amount: 50000,
-    currency: "NGN",
-    description: "From John Smith",
-    status: "completed",
-    category: "inflow",
-    service: "transfer",
-    date: "2024-01-15T10:30:00Z",
-    reference: "TXN123456789"
-  },
-  {
-    id: "2",
-    type: "Airtime Purchase",
-    amount: 1000,
-    currency: "NGN",
-    description: "MTN Airtime - 08123456789",
-    status: "completed",
-    category: "outflow",
-    service: "airtime",
-    date: "2024-01-14T15:45:00Z",
-    reference: "AIR987654321"
-  },
-  {
-    id: "3",
-    type: "Voucher Created",
-    amount: 5000,
-    currency: "NGN",
-    description: "Gift Voucher for Birthday",
-    status: "completed",
-    category: "outflow",
-    service: "voucher",
-    date: "2024-01-13T09:20:00Z",
-    reference: "VOU456789123"
-  },
-  {
-    id: "4",
-    type: "Currency Conversion",
-    amount: 100,
-    currency: "USD",
-    description: "NGN to USD conversion",
-    status: "completed",
-    category: "inflow",
-    service: "conversion",
-    date: "2024-01-12T14:15:00Z",
-    reference: "CNV789123456"
-  },
-  {
-    id: "5",
-    type: "Data Purchase",
-    amount: 2000,
-    currency: "NGN",
-    description: "5GB Data Bundle - Glo",
-    status: "completed",
-    category: "outflow",
-    service: "data",
-    date: "2024-01-11T11:30:00Z",
-    reference: "DAT321654987"
-  }
-];
+
+// Load live transactions from backend
 
 const RecentTransactions = () => {
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedService, setSelectedService] = useState<string>("all");
 
   useEffect(() => {
+    // Fetch live transactions
+    const load = async () => {
+      try {
+        const token = localStorage.getItem('tesapay_session_token') || '';
+        const res = await fetch(`/backend/transactions.php?limit=100`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const mapped: Transaction[] = (data.data || []).map((t: any) => ({
+            id: t.transaction_id,
+            type: t.transaction_type,
+            amount: Number(t.amount),
+            currency: t.currency,
+            description: t.description || t.transaction_type,
+            status: t.status,
+            category: ['deposit','voucher_redeem','transfer_in'].includes((t.transaction_type || '').toLowerCase()) ? 'inflow' : 'outflow',
+            service: t.transaction_type,
+            date: t.created_at,
+            reference: t.transaction_id
+          }));
+          setTransactions(mapped);
+          setFilteredTransactions(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+
     let filtered = transactions;
 
     if (searchTerm) {
@@ -118,50 +91,6 @@ const RecentTransactions = () => {
 
     setFilteredTransactions(filtered);
   }, [transactions, searchTerm, selectedCategory, selectedService]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }) + ' ' + date.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatAmount = (amount: number, currency: string) => {
-    const symbols: Record<string, string> = {
-      NGN: "₦",
-      USD: "$",
-      GBP: "£",
-      EUR: "€",
-      GHS: "₵"
-    };
-    return `${symbols[currency] || currency} ${amount.toLocaleString()}`;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-100 text-green-700";
-      case "pending":
-        return "bg-yellow-100 text-yellow-700";
-      case "failed":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const getCategoryIcon = (category: string) => {
-    return category === "inflow" ? "↓" : "↑";
-  };
-
-  const getCategoryColor = (category: string) => {
-    return category === "inflow" ? "text-green-600" : "text-red-600";
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20 max-w-md mx-auto relative">
