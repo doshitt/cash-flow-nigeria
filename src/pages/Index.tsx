@@ -5,6 +5,7 @@ import { ResellingSection } from "@/components/ResellingSection";
 import { InAdsSection } from "@/components/InAdsSection";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { KYCAlertBanner } from "@/components/KYCAlertBanner";
+import { RecentTransactionsSection } from "@/components/RecentTransactionsSection";
 
 const Index = () => {
   return (
@@ -30,6 +31,7 @@ const Index = () => {
         <KYCAlertBanner />
         <BalanceCard />
         <ServiceGrid />
+        <RecentTransactionsSection />
         <ResellingSection />
         <InAdsSection />
       </div>

@@ -15,7 +15,8 @@ import {
   Home,
   ArrowLeftRight,
   Zap,
-  FileCheck
+  FileCheck,
+  Receipt
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +33,7 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/doshitt", icon: Home },
   { title: "Transactions", url: "/doshitt/transactions", icon: ArrowLeftRight },
+  { title: "Coral Pay Transactions", url: "/doshitt/coralpay-transactions", icon: Receipt },
   { title: "Customers", url: "/doshitt/customers", icon: Users },
   { title: "Disputes", url: "/doshitt/disputes", icon: MessageSquare },
   { title: "Refunds", url: "/doshitt/refunds", icon: RefreshCw },

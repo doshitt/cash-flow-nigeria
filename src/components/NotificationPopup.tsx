@@ -2,6 +2,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, CheckCircle, AlertCircle, Gift, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 
 interface Notification {
@@ -13,77 +14,60 @@ interface Notification {
   currency?: string;
   timestamp: string;
   read: boolean;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
+  link?: string;
 }
-
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "inflow",
-    title: "Money Received",
-    message: "You received ₦50,000 from John Smith",
-    amount: 50000,
-    currency: "NGN",
-    timestamp: "2024-01-15T10:30:00Z",
-    read: false,
-    icon: <ArrowDownLeft className="text-green-600" size={16} />
-  },
-  {
-    id: "2",
-    type: "voucher_redeemed",
-    title: "Voucher Redeemed",
-    message: "Sarah Johnson redeemed your ₦5,000 gift voucher",
-    amount: 5000,
-    currency: "NGN",
-    timestamp: "2024-01-14T15:45:00Z",
-    read: false,
-    icon: <Gift className="text-purple-600" size={16} />
-  },
-  {
-    id: "3",
-    type: "success",
-    title: "Transfer Successful",
-    message: "Your transfer of ₦10,000 to Mike Davies was successful",
-    amount: 10000,
-    currency: "NGN",
-    timestamp: "2024-01-14T14:20:00Z",
-    read: true,
-    icon: <CheckCircle className="text-green-600" size={16} />
-  },
-  {
-    id: "4",
-    type: "system",
-    title: "New Feature Available",
-    message: "Currency conversion is now available in your TesaPay app",
-    timestamp: "2024-01-13T09:00:00Z",
-    read: true,
-    icon: <AlertCircle className="text-blue-600" size={16} />
-  },
-  {
-    id: "5",
-    type: "success",
-    title: "Airtime Purchase",
-    message: "₦1,000 airtime purchase completed successfully",
-    amount: 1000,
-    currency: "NGN",
-    timestamp: "2024-01-12T16:30:00Z",
-    read: true,
-    icon: <CheckCircle className="text-green-600" size={16} />
-  }
-];
 
 interface NotificationPopupProps {
   children: React.ReactNode;
 }
 
 export const NotificationPopup = ({ children }: NotificationPopupProps) => {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   useEffect(() => {
     const unread = notifications.filter(n => !n.read).length;
     setUnreadCount(unread);
   }, [notifications]);
+
+  const loadNotifications = async () => {
+    try {
+      const token = localStorage.getItem('tesapay_session_token') || '';
+      const res = await fetch('/backend/notifications.php', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const mapped = data.data.map((n: any) => ({
+          ...n,
+          icon: getIcon(n.type)
+        }));
+        setNotifications(mapped);
+      }
+    } catch (e) {
+      console.error('Failed to load notifications:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'inflow': return <ArrowDownLeft className="text-green-600" size={16} />;
+      case 'outflow': return <ArrowUpRight className="text-red-600" size={16} />;
+      case 'voucher_redeemed': return <Gift className="text-purple-600" size={16} />;
+      case 'success': return <CheckCircle className="text-green-600" size={16} />;
+      case 'system': return <AlertCircle className="text-blue-600" size={16} />;
+      default: return <Bell size={16} />;
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -111,14 +95,20 @@ export const NotificationPopup = ({ children }: NotificationPopupProps) => {
     return `${symbols[currency] || currency}${amount.toLocaleString()}`;
   };
 
-  const markAsRead = (notificationId: string) => {
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read
     setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
+      prev.map(n => 
+        n.id === notification.id 
+          ? { ...n, read: true }
+          : n
       )
     );
+    
+    // Navigate to link if available
+    if (notification.link) {
+      navigate(notification.link);
+    }
   };
 
   const getNotificationColor = (type: string) => {
@@ -165,7 +155,15 @@ export const NotificationPopup = ({ children }: NotificationPopupProps) => {
 
           {/* Notifications List */}
           <div className="flex-1 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <div className="p-4 space-y-3">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="p-4 animate-pulse">
+                    <div className="h-16 bg-muted rounded"></div>
+                  </Card>
+                ))}
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-6">
                 <Bell size={48} className="text-muted-foreground mb-4" />
                 <h3 className="font-medium mb-2">No notifications yet</h3>
@@ -181,7 +179,7 @@ export const NotificationPopup = ({ children }: NotificationPopupProps) => {
                     className={`p-4 border-l-4 ${getNotificationColor(notification.type)} ${
                       !notification.read ? 'bg-muted/30' : ''
                     } cursor-pointer hover:bg-muted/50 transition-colors`}
-                    onClick={() => markAsRead(notification.id)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-1">

@@ -44,14 +44,27 @@ try {
     }
     
     // Check user wallet balance
-    $stmt = $pdo->prepare("SELECT balance FROM wallets WHERE user_id = ? AND currency = 'NGN'");
+    $stmt = $pdo->prepare("SELECT balance, currency FROM wallets WHERE user_id = ? AND currency = 'NGN'");
     $stmt->execute([$userId]);
     $wallet = $stmt->fetch();
     
-    if (!$wallet || $wallet['balance'] < $amount) {
+    // Log wallet check for debugging
+    error_log("Wallet check - User: $userId, Found: " . ($wallet ? 'yes' : 'no') . 
+              ", Balance: " . ($wallet ? $wallet['balance'] : 'N/A') . 
+              ", Required: $amount");
+    
+    if (!$wallet) {
         echo json_encode([
             'success' => false,
-            'message' => 'Insufficient wallet balance'
+            'message' => 'NGN wallet not found. Please ensure you have a Naira wallet.'
+        ]);
+        exit();
+    }
+    
+    if ($wallet['balance'] < $amount) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Insufficient wallet balance. Available: ₦' . number_format($wallet['balance'], 2) . ', Required: ₦' . number_format($amount, 2)
         ]);
         exit();
     }
