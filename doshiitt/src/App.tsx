@@ -25,7 +25,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <BrowserRouter>
+      <BrowserRouter basename="/doshitt">
         <SidebarProvider>
           <div className="min-h-screen flex w-full">
             <Routes>

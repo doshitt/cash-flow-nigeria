@@ -29,6 +29,33 @@ interface Transaction {
 
 // Load live transactions from backend
 
+const getCategoryColor = (category: 'inflow' | 'outflow') =>
+  category === 'inflow' ? 'text-green-600' : 'text-red-600';
+
+const getCategoryIcon = (category: 'inflow' | 'outflow') =>
+  category === 'inflow' ? '⬆' : '⬇';
+
+const formatDate = (d: string) => {
+  const dt = new Date(d);
+  return isNaN(dt.getTime()) ? d : dt.toLocaleString();
+};
+
+const formatAmount = (amt: number, currency: string) =>
+  `${currency} ${Number(amt).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+const getStatusColor = (status: 'completed' | 'pending' | 'failed') => {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-100 text-green-700';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-700';
+    case 'failed':
+      return 'bg-red-100 text-red-700';
+    default:
+      return '';
+  }
+};
+
 const RecentTransactions = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);

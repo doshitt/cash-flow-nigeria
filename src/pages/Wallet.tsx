@@ -32,6 +32,7 @@ const Wallet = () => {
   const [selectedCurrency, setSelectedCurrency] = useState("NGN");
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [showConversion, setShowConversion] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
 
   const formatBalance = (amount: number) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 2 });

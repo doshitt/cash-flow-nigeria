@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const profileSections = [
   {
@@ -41,6 +42,9 @@ const profileSections = [
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const fullName = user ? (user.full_name || `${user.first_name} ${user.last_name}`.trim()) : "";
+  const initials = fullName ? fullName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U';
 
   const handleNavigateToSection = (label: string) => {
     switch (label) {
@@ -86,7 +90,7 @@ const Profile = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between p-4 pb-6">
-        <Button variant="ghost" size="sm" className="p-1">
+        <Button variant="ghost" size="sm" className="p-1" onClick={() => navigate(-1)}>
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-lg font-semibold">My Profile</h1>
@@ -106,16 +110,22 @@ const Profile = () => {
           
           <div className="flex flex-col items-center text-center">
             <Avatar className="w-20 h-20 mb-4">
-              <AvatarImage src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=80&h=80&fit=crop&crop=face" />
-              <AvatarFallback>JJ</AvatarFallback>
+              <AvatarImage src={undefined} />
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             
-            <h2 className="text-xl font-semibold mb-1">Johnson Jones</h2>
-            <p className="text-muted-foreground text-sm mb-2">@johnjones@gmail.com</p>
+            <h2 className="text-xl font-semibold mb-1">{fullName || '—'}</h2>
+            <p className="text-muted-foreground text-sm mb-2">{user?.email || '—'}</p>
             
-            <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
-              ✓ Verified
-            </Badge>
+            {user?.is_verified ? (
+              <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
+                ✓ Verified
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                Unverified
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -142,7 +152,7 @@ const Profile = () => {
 
         {/* Logout Section */}
         <div className="pt-6 space-y-3">
-          <button className="w-full p-4 text-center font-medium">
+          <button className="w-full p-4 text-center font-medium" onClick={() => { logout(); navigate('/login'); }}>
             Log out
           </button>
           <button className="w-full p-4 text-center font-medium text-destructive">

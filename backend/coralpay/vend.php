@@ -44,7 +44,7 @@ try {
     }
     
     // Check user wallet balance
-    $stmt = $pdo->prepare("SELECT balance FROM wallets WHERE user_id = ? AND currency = 'NGN' AND is_active = 1");
+    $stmt = $pdo->prepare("SELECT balance FROM wallets WHERE user_id = ? AND currency = 'NGN'");
     $stmt->execute([$userId]);
     $wallet = $stmt->fetch();
     
@@ -108,6 +108,10 @@ try {
         // Some providers require product/package name on enquiry (e.g., TV)
         if (!empty($packageSlug)) {
             $lookupPayload['productName'] = $packageSlug;
+        }
+        // Some providers require amount during enquiry (e.g., betting)
+        if (!empty($amount)) {
+            $lookupPayload['amount'] = floatval($amount);
         }
         $lookupRes = CoralPayConfig::makeRequest('/transactions/customer-lookup', 'POST', $lookupPayload);
         if (!($lookupRes['success'] && isset($lookupRes['data']['responseCode']) && $lookupRes['data']['responseCode'] === '00')) {
