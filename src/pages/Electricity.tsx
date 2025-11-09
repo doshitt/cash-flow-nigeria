@@ -184,7 +184,8 @@ export default function Electricity() {
         const now = new Date();
         const operatorName = discos.find(d => d.slug === selectedDisco)?.name || selectedDisco;
         const txId = result.data?.transaction_id || result.data?.payment_reference || '';
-        const token = result.data?.token || result.data?.responseData?.token || null;
+        // Extract token from correct path: responseData.tokenData.stdToken.value
+        const token = result.data?.responseData?.tokenData?.stdToken?.value || result.data?.token || null;
         const transaction: TransactionData = {
           amount: amountValue,
           date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
