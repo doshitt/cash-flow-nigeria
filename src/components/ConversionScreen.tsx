@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowUpDown } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { API_CONFIG, getApiUrl } from "@/config/api";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface ConversionScreenProps {
   onBack: () => void;
@@ -30,11 +31,13 @@ const exchangeRates: Record<string, Record<string, number>> = {
 };
 
 export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenProps) => {
-  const { user, wallets } = useAuth();
+  const { user, wallets, checkSession } = useAuth();
   const [fromCurrency, setFromCurrency] = useState("");
   const [toCurrency, setToCurrency] = useState(selectedCurrency);
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [conversionResult, setConversionResult] = useState<{from: string, to: string, amount: number, converted: number} | null>(null);
   const { toast } = useToast();
 
   const fromWallet = wallets?.find(w => w.currency === fromCurrency);
@@ -94,11 +97,17 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
       const data = await response.json();
 
       if (data.success) {
-        toast({
-          title: "Conversion Successful",
-          description: `Converted ${amount} ${fromCurrency} to ${convertedAmount.toFixed(2)} ${toCurrency}`,
+        // Refresh balance immediately
+        await checkSession();
+        
+        // Show success dialog
+        setConversionResult({
+          from: fromCurrency,
+          to: toCurrency,
+          amount: parseFloat(amount),
+          converted: data.converted_amount || convertedAmount
         });
-        setTimeout(() => onBack(), 1500);
+        setShowSuccessDialog(true);
       } else {
         toast({
           title: "Conversion Failed",
@@ -117,19 +126,59 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
     }
   };
 
+  const handleSuccessOk = () => {
+    setShowSuccessDialog(false);
+    onBack();
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div>
-          <h2 className="text-xl font-semibold">Currency Conversion</h2>
-          <p className="text-sm text-muted-foreground">
-            Convert funds between your wallets
-          </p>
+    <>
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-3">
+                <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-xl">Conversion Successful!</DialogTitle>
+            <DialogDescription className="text-center space-y-2">
+              {conversionResult && (
+                <>
+                  <div className="text-base font-medium text-foreground mt-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>{currencyInfo[conversionResult.from as keyof typeof currencyInfo]?.symbol}{conversionResult.amount.toFixed(2)} {conversionResult.from}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="text-primary">{currencyInfo[conversionResult.to as keyof typeof currencyInfo]?.symbol}{conversionResult.converted.toFixed(2)} {conversionResult.to}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Your balance has been updated
+                  </p>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleSuccessOk} className="w-full">
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">Currency Conversion</h2>
+            <p className="text-sm text-muted-foreground">
+              Convert funds between your wallets
+            </p>
+          </div>
         </div>
-      </div>
 
       <div className="space-y-4">
         <div>
@@ -229,7 +278,8 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
         >
           {isLoading ? "Converting..." : "Convert Now"}
         </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };

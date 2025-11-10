@@ -11,6 +11,7 @@ import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { toast } from "@/hooks/use-toast";
 import { useFeatures } from "@/hooks/useFeatures";
 import { getApiUrl } from "@/config/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AirtimePackage {
   id: number;
@@ -42,6 +43,7 @@ type AirtimeStep = "purchase" | "success" | "receipt";
 export default function Airtime() {
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatures();
+  const { user, checkSession } = useAuth();
   const [currentStep, setCurrentStep] = useState<AirtimeStep>("purchase");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState("");
@@ -157,10 +159,18 @@ export default function Airtime() {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in again",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
-      
       // Use the VTU package slug that was fetched when network was selected
       if (!selectedPackageSlug) {
         toast({
@@ -190,6 +200,9 @@ export default function Airtime() {
       const result = await response.json();
 
       if (result.success) {
+        // Refresh balance immediately
+        await checkSession();
+        
         const now = new Date();
         const transaction: TransactionData = {
           phoneNumber: phoneNumber,

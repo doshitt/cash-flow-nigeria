@@ -11,6 +11,7 @@ import { TransactionSuccess } from "@/components/TransactionSuccess";
 import { toast } from "@/hooks/use-toast";
 import { useFeatures } from "@/hooks/useFeatures";
 import { API_CONFIG, getApiUrl } from "@/config/api";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DataPackage {
   id: number;
@@ -42,6 +43,7 @@ type DataStep = "purchase" | "success" | "receipt";
 export default function Data() {
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatures();
+  const { user, checkSession } = useAuth();
   const [currentStep, setCurrentStep] = useState<DataStep>("purchase");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedNetwork, setSelectedNetwork] = useState("");
@@ -131,10 +133,18 @@ export default function Data() {
     const selectedPkg = packages.find(p => p.slug === selectedPackage);
     if (!selectedPkg) return;
 
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in again",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('tesapay_user') || '{}');
-      
       const response = await fetch(`${getApiUrl('')}/coralpay/vend.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,6 +164,9 @@ export default function Data() {
       const result = await response.json();
 
       if (result.success) {
+        // Refresh balance immediately
+        await checkSession();
+        
         const now = new Date();
         const transaction = {
           phoneNumber,

@@ -97,7 +97,12 @@ try {
         
         // Record debit transaction (withdrawal from source currency)
         $debitTxnId = 'CVT' . time() . rand(1000, 9999);
-        $stmt = $pdo->prepare("\n            INSERT INTO transactions (\n                transaction_id, user_id, transaction_type, \n                amount, currency, status, description, created_at\n            ) VALUES (?, ?, 'withdrawal', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)\n        ");
+        $stmt = $pdo->prepare("
+            INSERT INTO transactions (
+                transaction_id, user_id, transaction_type, 
+                amount, currency, status, description, created_at
+            ) VALUES (?, ?, 'withdrawal', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)
+        ");
         $stmt->execute([
             $debitTxnId,
             $userId,
@@ -108,7 +113,12 @@ try {
         
         // Record credit transaction (deposit to destination currency)
         $creditTxnId = 'CVT' . time() . rand(1000, 9999);
-        $stmt = $pdo->prepare("\n            INSERT INTO transactions (\n                transaction_id, user_id, transaction_type, \n                amount, currency, status, description, created_at\n            ) VALUES (?, ?, 'deposit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)\n        ");
+        $stmt = $pdo->prepare("
+            INSERT INTO transactions (
+                transaction_id, user_id, transaction_type, 
+                amount, currency, status, description, created_at
+            ) VALUES (?, ?, 'deposit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)
+        ");
         $stmt->execute([
             $creditTxnId,
             $userId,
@@ -117,17 +127,26 @@ try {
             "Currency conversion from $fromCurrency"
         ]);
         
-        // Create notification for currency conversion
-        $notificationId = 'NOT' . time() . rand(1000, 9999);
-        $stmt = $pdo->prepare("\n            INSERT INTO notifications (\n                id, user_id, type, title, message, amount, currency, timestamp, `read`\n            ) VALUES (?, ?, 'success', ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)\n        ");
-        $stmt->execute([
-            $notificationId,
-            $userId,
-            'Currency Converted',
-            "Successfully converted {$fromCurrency} " . number_format($amount, 2) . " to {$toCurrency} " . number_format($convertedAmount, 2),
-            $convertedAmount,
-            $toCurrency
-        ]);
+        // Create notification for currency conversion (if table exists)
+        try {
+            $notificationId = 'NOT' . time() . rand(1000, 9999);
+            $stmt = $pdo->prepare("
+                INSERT INTO notifications (
+                    id, user_id, type, title, message, amount, currency, timestamp, `read`
+                ) VALUES (?, ?, 'success', ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)
+            ");
+            $stmt->execute([
+                $notificationId,
+                $userId,
+                'Currency Converted',
+                "Successfully converted {$fromCurrency} " . number_format($amount, 2) . " to {$toCurrency} " . number_format($convertedAmount, 2),
+                $convertedAmount,
+                $toCurrency
+            ]);
+        } catch (Exception $notifError) {
+            // Silently continue if notifications table doesn't exist
+            error_log("Notification creation failed: " . $notifError->getMessage());
+        }
         
         $pdo->commit();
         
