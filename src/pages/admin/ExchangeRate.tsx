@@ -34,7 +34,7 @@ export default function ExchangeRate() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAutoMode, setIsAutoMode] = useState(false);
+  const [isAutoMode, setIsAutoMode] = useState(true); // Default to auto
   const [syncing, setSyncing] = useState(false);
   const [cryptoFees, setCryptoFees] = useState<any[]>([]);
   const [cryptoPlatformFees, setCryptoPlatformFees] = useState<any[]>([]);
@@ -51,7 +51,20 @@ export default function ExchangeRate() {
   useEffect(() => {
     fetchRates();
     fetchTransferFees();
+    fetchAutoModeSetting();
   }, []);
+
+  const fetchAutoModeSetting = async () => {
+    try {
+      const response = await fetch(getAdminApiUrl('/system_settings.php?key=exchange_rate_auto_mode'));
+      const data = await response.json();
+      if (data.success && data.data) {
+        setIsAutoMode(data.data.setting_value === '1');
+      }
+    } catch (error) {
+      console.error('Failed to load auto mode setting:', error);
+    }
+  };
 
   const fetchRates = async () => {
     try {
@@ -74,47 +87,24 @@ export default function ExchangeRate() {
   const fetchGoogleRates = async () => {
     setSyncing(true);
     try {
-      // Using exchangerate-api.com free tier - fetches NGN rates
-      const response = await fetch('https://api.exchangerate-api.com/v4/latest/NGN');
+      const response = await fetch(getAdminApiUrl('/sync_exchange_rates.php'), {
+        method: 'POST'
+      });
       const data = await response.json();
-      
-      if (data.rates) {
-        const currencyPairs = [
-          { from: 'NGN', to: 'USD', rate: data.rates.USD },
-          { from: 'NGN', to: 'GBP', rate: data.rates.GBP },
-          { from: 'NGN', to: 'EUR', rate: data.rates.EUR },
-          { from: 'NGN', to: 'GHS', rate: data.rates.GHS },
-          { from: 'USD', to: 'NGN', rate: 1 / data.rates.USD },
-          { from: 'GBP', to: 'NGN', rate: 1 / data.rates.GBP },
-          { from: 'EUR', to: 'NGN', rate: 1 / data.rates.EUR },
-          { from: 'GHS', to: 'NGN', rate: 1 / data.rates.GHS },
-        ];
 
-        // Update all rates in database
-        for (const pair of currencyPairs) {
-          const feePercentage = pair.to === 'NGN' ? '0.5' : '0';
-          await fetch(getAdminApiUrl('/exchange_rates.php'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              from_currency: pair.from,
-              to_currency: pair.to,
-              rate: pair.rate.toFixed(6),
-              fee_percentage: feePercentage
-            })
-          });
-        }
-
+      if (data.success) {
         toast({
           title: "Success",
-          description: "Exchange rates synced from Google"
+          description: data.message || "Exchange rates synced from Google"
         });
         fetchRates();
+      } else {
+        throw new Error(data.message || 'Sync failed');
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to sync rates",
+        description: error instanceof Error ? error.message : "Failed to sync rates",
         variant: "destructive"
       });
     } finally {
@@ -171,6 +161,41 @@ export default function ExchangeRate() {
     }
   };
 
+  const toggleAutoMode = async (enabled: boolean) => {
+    try {
+      const response = await fetch(getAdminApiUrl('/system_settings.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setting_key: 'exchange_rate_auto_mode',
+          setting_value: enabled ? '1' : '0',
+          description: 'Automatically fetch exchange rates from Google'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setIsAutoMode(enabled);
+        toast({
+          title: "Success",
+          description: enabled ? "Automatic mode enabled - rates will sync from Google" : "Manual mode enabled - you can set custom rates"
+        });
+        
+        if (enabled) {
+          // Immediately sync rates when enabling auto mode
+          fetchGoogleRates();
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update auto mode setting",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleUpdateTransferFee = async (feeData: any, type: string) => {
     try {
       const response = await fetch(getAdminApiUrl('/transfer_fees.php'), {
@@ -205,11 +230,22 @@ export default function ExchangeRate() {
           <h1 className="text-3xl font-bold tracking-tight">Exchange Rates & Transfer Fees</h1>
           <p className="text-muted-foreground">Manage currency exchange rates, crypto fees, and MOMO fees</p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">Manual Update</Button>
-            </DialogTrigger>
+        <div className="flex gap-4 items-center">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="auto-mode"
+              checked={isAutoMode}
+              onCheckedChange={toggleAutoMode}
+            />
+            <Label htmlFor="auto-mode" className="cursor-pointer">
+              {isAutoMode ? 'Automatic (Google Rates)' : 'Manual Mode'}
+            </Label>
+          </div>
+          {!isAutoMode && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Manual Update</Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Update Exchange Rates</DialogTitle>
@@ -270,8 +306,9 @@ export default function ExchangeRate() {
               <DialogFooter>
                 <Button onClick={handleSubmit}>Update</Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 

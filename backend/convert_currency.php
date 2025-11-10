@@ -30,6 +30,55 @@ try {
         throw new Exception('Cannot convert to the same currency');
     }
     
+    // Check if auto mode is enabled and sync rates if needed
+    $autoModeStmt = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'exchange_rate_auto_mode'");
+    $autoMode = $autoModeStmt->fetch();
+    
+    if ($autoMode && $autoMode['setting_value'] == '1') {
+        // Check if rates are stale (older than 1 hour)
+        $checkStmt = $pdo->query("
+            SELECT MAX(updated_at) as last_update 
+            FROM exchange_rates
+        ");
+        $lastUpdate = $checkStmt->fetch();
+        
+        if (!$lastUpdate || strtotime($lastUpdate['last_update']) < strtotime('-1 hour')) {
+            // Fetch and update rates from API
+            $apiResponse = @file_get_contents('https://api.exchangerate-api.com/v4/latest/NGN');
+            if ($apiResponse) {
+                $apiData = json_decode($apiResponse, true);
+                if (isset($apiData['rates'])) {
+                    $rates = $apiData['rates'];
+                    $pairs = [
+                        ['from' => 'NGN', 'to' => 'USD', 'rate' => $rates['USD'], 'fee' => 0],
+                        ['from' => 'USD', 'to' => 'NGN', 'rate' => 1 / $rates['USD'], 'fee' => 0.5],
+                        ['from' => 'NGN', 'to' => 'GBP', 'rate' => $rates['GBP'], 'fee' => 0],
+                        ['from' => 'GBP', 'to' => 'NGN', 'rate' => 1 / $rates['GBP'], 'fee' => 0.5],
+                        ['from' => 'NGN', 'to' => 'EUR', 'rate' => $rates['EUR'], 'fee' => 0],
+                        ['from' => 'EUR', 'to' => 'NGN', 'rate' => 1 / $rates['EUR'], 'fee' => 0.5],
+                        ['from' => 'NGN', 'to' => 'GHS', 'rate' => $rates['GHS'], 'fee' => 0],
+                        ['from' => 'GHS', 'to' => 'NGN', 'rate' => 1 / $rates['GHS'], 'fee' => 0.5],
+                    ];
+                    
+                    $updateStmt = $pdo->prepare("
+                        INSERT INTO exchange_rates (from_currency, to_currency, rate, fee_percentage, status)
+                        VALUES (:from, :to, :rate, :fee, 'active')
+                        ON DUPLICATE KEY UPDATE rate = :rate, fee_percentage = :fee, updated_at = NOW()
+                    ");
+                    
+                    foreach ($pairs as $pair) {
+                        $updateStmt->execute([
+                            'from' => $pair['from'],
+                            'to' => $pair['to'],
+                            'rate' => $pair['rate'],
+                            'fee' => $pair['fee']
+                        ]);
+                    }
+                }
+            }
+        }
+    }
+
     // Get exchange rate and fee percentage (with fallback if column doesn't exist)
     try {
         $stmt = $pdo->prepare("SELECT rate, fee_percentage FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
