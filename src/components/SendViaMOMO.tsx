@@ -32,7 +32,7 @@ export const SendViaMOMO = ({ onSubmit, onBack }: SendViaMOMOProps) => {
   const { wallets } = useAuth();
 
   const ghsWallet = wallets.find(w => w.currency === 'GHS');
-  const ghsBalance = ghsWallet?.balance || 0;
+  const ghsBalance = parseFloat(ghsWallet?.balance as any) || 0;
 
   const MIN_TRANSFER = 5;
   const MAX_TRANSFER = 1000;
@@ -58,10 +58,10 @@ export const SendViaMOMO = ({ onSubmit, onBack }: SendViaMOMOProps) => {
     if (!amount) return 0;
 
     const tier = momoFees.find(f => 
-      amount >= f.min_amount && amount <= f.max_amount
+      amount >= parseFloat(f.min_amount as any) && amount <= parseFloat(f.max_amount as any)
     );
     
-    return tier?.platform_fee || 0;
+    return parseFloat(tier?.platform_fee as any) || 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {

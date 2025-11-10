@@ -43,7 +43,7 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
   const { wallets } = useAuth();
 
   const usdWallet = wallets.find(w => w.currency === 'USD');
-  const usdBalance = usdWallet?.balance || 0;
+  const usdBalance = parseFloat(usdWallet?.balance as any) || 0;
 
   useEffect(() => {
     fetchCryptoFees();
@@ -78,14 +78,14 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
     // Calculate platform fee based on tiers
     let platformFee = 0;
     const tier = platformFees.find(f => 
-      amount >= f.min_amount && (f.max_amount === null || amount <= f.max_amount)
+      amount >= parseFloat(f.min_amount as any) && (f.max_amount === null || amount <= parseFloat(f.max_amount as any))
     );
     
     if (tier) {
       if (tier.fee_type === 'percentage') {
-        platformFee = amount * (tier.fee_value / 100);
+        platformFee = amount * (parseFloat(tier.fee_value as any) / 100);
       } else {
-        platformFee = tier.fee_value;
+        platformFee = parseFloat(tier.fee_value as any);
       }
     }
 
@@ -93,7 +93,7 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
     const cryptoFee = cryptoFees.find(
       f => f.crypto_type === formData.cryptoType && f.network_type === formData.networkType
     );
-    const blockchainFee = cryptoFee?.blockchain_fee || 0;
+    const blockchainFee = parseFloat(cryptoFee?.blockchain_fee as any) || 0;
     
     const totalFee = platformFee + blockchainFee;
     const total = amount + totalFee;
@@ -105,7 +105,7 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
     const cryptoFee = cryptoFees.find(
       f => f.crypto_type === formData.cryptoType && f.network_type === formData.networkType
     );
-    return cryptoFee?.min_amount || 0;
+    return parseFloat(cryptoFee?.min_amount as any) || 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
