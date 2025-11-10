@@ -1,9 +1,9 @@
 -- Update exchange_rates table to ensure fee_percentage column exists
 -- This is idempotent and safe to run multiple times
 
--- Make sure the fee_percentage column exists with proper default
+-- Add the fee_percentage column if it doesn't exist
 ALTER TABLE exchange_rates 
-MODIFY COLUMN fee_percentage DECIMAL(5,2) DEFAULT 0;
+ADD COLUMN fee_percentage DECIMAL(5,2) DEFAULT 0;
 
 -- Update all conversions to NGN to have 0.5% fee
 UPDATE exchange_rates 
