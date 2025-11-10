@@ -96,6 +96,37 @@ try {
                 json_encode($recipient_info)
             ]);
             
+            // Record platform fee separately for crypto and MOMO transfers
+            if ($transfer_type === 'crypto' && isset($recipient_info['platformFee']) && $recipient_info['platformFee'] > 0) {
+                $fee_transaction_id = 'FEE_' . uniqid();
+                $stmt = $pdo->prepare("
+                    INSERT INTO transactions 
+                    (transaction_id, user_id, transaction_type, amount, currency, status, description) 
+                    VALUES (?, ?, 'fee', ?, ?, 'completed', 'Crypto Processing Fee')
+                ");
+                $stmt->execute([
+                    $fee_transaction_id,
+                    $user_id,
+                    $recipient_info['platformFee'],
+                    $currency,
+                ]);
+            }
+            
+            if ($transfer_type === 'momo' && isset($recipient_info['platformFee']) && $recipient_info['platformFee'] > 0) {
+                $fee_transaction_id = 'FEE_' . uniqid();
+                $stmt = $pdo->prepare("
+                    INSERT INTO transactions 
+                    (transaction_id, user_id, transaction_type, amount, currency, status, description) 
+                    VALUES (?, ?, 'fee', ?, ?, 'completed', 'MOMO Processing Fee')
+                ");
+                $stmt->execute([
+                    $fee_transaction_id,
+                    $user_id,
+                    $recipient_info['platformFee'],
+                    $currency,
+                ]);
+            }
+            
             // For Tesapay transfers, credit the recipient's wallet
             if ($transfer_type === 'tesapay') {
                 $recipient_username = $recipient_info['username'];

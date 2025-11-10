@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, RefreshCw, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +36,10 @@ export default function ExchangeRate() {
   const [loading, setLoading] = useState(true);
   const [isAutoMode, setIsAutoMode] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [cryptoFees, setCryptoFees] = useState<any[]>([]);
+  const [cryptoPlatformFees, setCryptoPlatformFees] = useState<any[]>([]);
+  const [momoFees, setMomoFees] = useState<any[]>([]);
+  const [editingFee, setEditingFee] = useState<any>(null);
   const [formData, setFormData] = useState({
     from_currency: 'NGN',
     to_currency: 'USD',
@@ -45,6 +50,7 @@ export default function ExchangeRate() {
 
   useEffect(() => {
     fetchRates();
+    fetchTransferFees();
   }, []);
 
   const fetchRates = async () => {
@@ -116,6 +122,20 @@ export default function ExchangeRate() {
     }
   };
 
+  const fetchTransferFees = async () => {
+    try {
+      const response = await fetch(getAdminApiUrl('/transfer_fees.php?type=all'));
+      const data = await response.json();
+      if (data.success) {
+        setCryptoFees(data.crypto_fees || []);
+        setCryptoPlatformFees(data.crypto_platform_fees || []);
+        setMomoFees(data.momo_fees || []);
+      }
+    } catch (error) {
+      console.error('Failed to load transfer fees:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const response = await fetch(getAdminApiUrl('/exchange_rates.php'), {
@@ -151,12 +171,39 @@ export default function ExchangeRate() {
     }
   };
 
+  const handleUpdateTransferFee = async (feeData: any, type: string) => {
+    try {
+      const response = await fetch(getAdminApiUrl('/transfer_fees.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...feeData, fee_type: type })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: "Transfer fees updated successfully"
+        });
+        fetchTransferFees();
+        setEditingFee(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update transfer fees",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Exchange Rates</h1>
-          <p className="text-muted-foreground">Manage currency exchange rates and spreads</p>
+          <h1 className="text-3xl font-bold tracking-tight">Exchange Rates & Transfer Fees</h1>
+          <p className="text-muted-foreground">Manage currency exchange rates, crypto fees, and MOMO fees</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -295,63 +342,225 @@ export default function ExchangeRate() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Current Exchange Rates</CardTitle>
-          <CardDescription>Manage conversion rates for all supported currencies</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-center py-4">Loading...</p>
-          ) : rates.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No exchange rates configured yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Rate</TableHead>
-                  <TableHead>Fee</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rates.map((rate) => {
-                  const fromCurrency = currencies.find(c => c.code === rate.from_currency);
-                  const toCurrency = currencies.find(c => c.code === rate.to_currency);
-                  
-                  return (
-                    <TableRow key={rate.id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-2xl">{fromCurrency?.flag}</span>
-                          <span className="font-medium">{rate.from_currency}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-2xl">{toCurrency?.flag}</span>
-                          <span className="font-medium">{rate.to_currency}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">{rate.rate}</TableCell>
-                      <TableCell>{rate.fee_percentage}%</TableCell>
-                      <TableCell>
-                        <span className={rate.status === 'active' ? 'text-green-600' : 'text-red-600'}>
-                          {rate.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>{new Date(rate.updated_at).toLocaleString()}</TableCell>
+      <Tabs defaultValue="exchange-rates" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="exchange-rates">Exchange Rates</TabsTrigger>
+          <TabsTrigger value="crypto-fees">Crypto Fees</TabsTrigger>
+          <TabsTrigger value="momo-fees">MOMO Fees</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="exchange-rates" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Exchange Rates</CardTitle>
+              <CardDescription>Manage conversion rates for all supported currencies</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-center py-4">Loading...</p>
+              ) : rates.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No exchange rates configured yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>Rate</TableHead>
+                      <TableHead>Fee</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Updated</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {rates.map((rate) => {
+                      const fromCurrency = currencies.find(c => c.code === rate.from_currency);
+                      const toCurrency = currencies.find(c => c.code === rate.to_currency);
+                      
+                      return (
+                        <TableRow key={rate.id}>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-2xl">{fromCurrency?.flag}</span>
+                              <span className="font-medium">{rate.from_currency}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-2xl">{toCurrency?.flag}</span>
+                              <span className="font-medium">{rate.to_currency}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{rate.rate}</TableCell>
+                          <TableCell>{rate.fee_percentage}%</TableCell>
+                          <TableCell>
+                            <span className={rate.status === 'active' ? 'text-green-600' : 'text-red-600'}>
+                              {rate.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>{new Date(rate.updated_at).toLocaleString()}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="crypto-fees" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Crypto Platform Fees (Tiered)</CardTitle>
+              <CardDescription>Platform fees charged based on transaction amount</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Amount Range</TableHead>
+                    <TableHead>Fee Type</TableHead>
+                    <TableHead>Fee Value</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cryptoPlatformFees.map((fee) => (
+                    <TableRow key={fee.id}>
+                      <TableCell>
+                        ${fee.min_amount} - {fee.max_amount ? `$${fee.max_amount}` : 'Upward'}
+                      </TableCell>
+                      <TableCell className="capitalize">{fee.fee_type}</TableCell>
+                      <TableCell>
+                        {fee.fee_type === 'percentage' ? `${fee.fee_value}%` : `$${fee.fee_value}`}
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            const newValue = prompt(`Enter new ${fee.fee_type} value:`, fee.fee_value);
+                            if (newValue) {
+                              handleUpdateTransferFee({
+                                id: fee.id,
+                                fee_type_val: fee.fee_type,
+                                fee_value: parseFloat(newValue),
+                                status: fee.status
+                              }, 'crypto_platform');
+                            }
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Crypto Blockchain Fees</CardTitle>
+              <CardDescription>Network fees and minimum amounts for each crypto/network pair</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Crypto</TableHead>
+                    <TableHead>Network</TableHead>
+                    <TableHead>Blockchain Fee</TableHead>
+                    <TableHead>Minimum Amount</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cryptoFees.map((fee) => (
+                    <TableRow key={fee.id}>
+                      <TableCell className="font-medium">{fee.crypto_type}</TableCell>
+                      <TableCell>{fee.network_type}</TableCell>
+                      <TableCell>${fee.blockchain_fee}</TableCell>
+                      <TableCell>${fee.min_amount}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            const newFee = prompt('Enter new blockchain fee:', fee.blockchain_fee);
+                            const newMin = prompt('Enter new minimum amount:', fee.min_amount);
+                            if (newFee && newMin) {
+                              handleUpdateTransferFee({
+                                crypto_type: fee.crypto_type,
+                                network_type: fee.network_type,
+                                blockchain_fee: parseFloat(newFee),
+                                min_amount: parseFloat(newMin),
+                                status: fee.status
+                              }, 'crypto');
+                            }
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="momo-fees" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>MOMO Transfer Fees</CardTitle>
+              <CardDescription>Platform fees for MOMO transfers (Min: 5 GHS, Max: 1000 GHS)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Amount Range (GHS)</TableHead>
+                    <TableHead>Platform Fee (GHS)</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {momoFees.map((fee) => (
+                    <TableRow key={fee.id}>
+                      <TableCell>
+                        ₵{fee.min_amount} - ₵{fee.max_amount}
+                      </TableCell>
+                      <TableCell className="font-medium">₵{fee.platform_fee}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            const newFee = prompt('Enter new platform fee (GHS):', fee.platform_fee);
+                            if (newFee) {
+                              handleUpdateTransferFee({
+                                id: fee.id,
+                                platform_fee: parseFloat(newFee),
+                                status: fee.status
+                              }, 'momo');
+                            }
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

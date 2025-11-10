@@ -13,6 +13,7 @@ export const ADMIN_API_CONFIG = {
     PAYMENT_REQUESTS: '/payment_requests.php',
     COUPONS: '/coupons.php',
     EXCHANGE_RATES: '/exchange_rates.php',
+    TRANSFER_FEES: '/transfer_fees.php',
     REFERRALS: '/referrals.php',
     CARDS: '/cards.php',
     NOTIFICATIONS: '/notifications.php',

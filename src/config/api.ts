@@ -24,6 +24,7 @@ export const API_CONFIG = {
     UPDATE_PIN: '/update_pin.php',
     ADD_CARD: '/add_card.php',
     CONVERT_CURRENCY: '/convert_currency.php',
+    GET_TRANSFER_FEES: '/get_transfer_fees.php',
   },
   
   // Request configuration
