@@ -215,7 +215,7 @@ export default function Airtime() {
         };
 
         setTransactionData(transaction);
-        setCurrentStep("success");
+        setCurrentStep("receipt");
 
         toast({
           title: "Payment Successful",

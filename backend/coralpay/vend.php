@@ -217,29 +217,30 @@ try {
         $coralPayResponse
     ]);
     
-    // Create notification for the transaction
-    $notificationId = 'NOT' . time() . rand(1000, 9999);
-    $notificationType = $status === 'completed' ? 'outflow' : 'system';
-    $notificationTitle = $status === 'completed' ? 
-        ucfirst($billerType) . ' Purchase Successful' : 
-        ucfirst($billerType) . ' Purchase Failed';
-    $notificationMessage = $status === 'completed' ?
-        "Successfully purchased {$billerType} for {$customerId}. Amount: ₦" . number_format($amount, 2) :
-        "Failed to purchase {$billerType} for {$customerId}. " . ($responseMessage ?? '');
-    
-    $stmt = $pdo->prepare("
-        INSERT INTO notifications (
-            id, user_id, type, title, message, amount, currency, timestamp, `read`
-        ) VALUES (?, ?, ?, ?, ?, ?, 'NGN', NOW(), 0)
-    ");
-    $stmt->execute([
-        $notificationId,
-        $userId,
-        $notificationType,
-        $notificationTitle,
-        $notificationMessage,
-        $amount
-    ]);
+    // Create notification for the transaction (non-blocking: ignore if table missing)
+    try {
+        $notificationId = 'NOT' . time() . rand(1000, 9999);
+        $notificationType = $status === 'completed' ? 'outflow' : 'system';
+        $notificationTitle = $status === 'completed' ? 
+            ucfirst($billerType) . ' Purchase Successful' : 
+            ucfirst($billerType) . ' Purchase Failed';
+        $notificationMessage = $status === 'completed' ?
+            "Successfully purchased {$billerType} for {$customerId}. Amount: ₦" . number_format($amount, 2) :
+            "Failed to purchase {$billerType} for {$customerId}. " . ($responseMessage ?? '');
+        
+        $stmt = $pdo->prepare("\n            INSERT INTO notifications (\n                id, user_id, type, title, message, amount, currency, timestamp, `read`\n            ) VALUES (?, ?, ?, ?, ?, ?, 'NGN', NOW(), 0)\n        ");
+        $stmt->execute([
+            $notificationId,
+            $userId,
+            $notificationType,
+            $notificationTitle,
+            $notificationMessage,
+            $amount
+        ]);
+    } catch (Exception $e) {
+        // If notifications table doesn't exist or any error occurs, log and continue
+        error_log('Notification insert skipped: ' . $e->getMessage());
+    }
     
     if ($status === 'completed') {
         echo json_encode([

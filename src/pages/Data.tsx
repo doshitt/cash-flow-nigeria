@@ -179,7 +179,7 @@ export default function Data() {
         } as TransactionData;
 
         setTransactionData(transaction);
-        setCurrentStep("success");
+        setCurrentStep("receipt");
 
         toast({
           title: "Success!",
