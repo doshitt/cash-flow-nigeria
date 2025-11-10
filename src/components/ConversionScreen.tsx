@@ -50,8 +50,30 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
     return exchangeRates[fromCurrency]?.[toCurrency] || 1;
   };
 
-  const exchangeRate = getExchangeRate();
-  const convertedAmount = parseFloat(amount || "0") * exchangeRate;
+  const calculateConversion = () => {
+    const rate = getExchangeRate();
+    const converted = parseFloat(amount || "0") * rate;
+    
+    // Apply 0.5% fee if converting to NGN
+    if (toCurrency === 'NGN') {
+      const fee = converted * 0.005;
+      return {
+        rate,
+        converted,
+        fee,
+        final: converted - fee
+      };
+    }
+    
+    return {
+      rate,
+      converted,
+      fee: 0,
+      final: converted
+    };
+  };
+
+  const conversionCalc = calculateConversion();
 
   const handleSwapCurrencies = () => {
     const temp = fromCurrency;
@@ -105,7 +127,7 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
           from: fromCurrency,
           to: toCurrency,
           amount: parseFloat(amount),
-          converted: data.converted_amount || convertedAmount
+          converted: data.final_amount || data.converted_amount || conversionCalc.final
         });
         setShowSuccessDialog(true);
       } else {
@@ -260,12 +282,28 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
           <Card className="p-4">
             <div className="text-sm space-y-2">
               <div className="flex justify-between">
-                <span>Exchange rate:</span>
-                <span>1 {fromCurrency} = {exchangeRate.toFixed(4)} {toCurrency}</span>
+                <span className="text-muted-foreground">Exchange rate:</span>
+                <span className="font-medium">1 {fromCurrency} = {conversionCalc.rate.toFixed(6)} {toCurrency}</span>
               </div>
-              <div className="flex justify-between font-medium text-base">
+              
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Conversion amount:</span>
+                <span className="font-medium">{toInfo?.symbol}{conversionCalc.converted.toFixed(2)}</span>
+              </div>
+              
+              {toCurrency === 'NGN' && conversionCalc.fee > 0 && (
+                <>
+                  <div className="flex justify-between text-red-500">
+                    <span>Fee (0.5%):</span>
+                    <span>-₦{conversionCalc.fee.toFixed(2)}</span>
+                  </div>
+                  <div className="h-px bg-border my-1" />
+                </>
+              )}
+              
+              <div className="flex justify-between font-semibold text-base text-primary">
                 <span>You'll receive:</span>
-                <span>{toInfo?.symbol}{convertedAmount.toFixed(2)} {toCurrency}</span>
+                <span>{toInfo?.symbol}{conversionCalc.final.toFixed(2)} {toCurrency}</span>
               </div>
             </div>
           </Card>

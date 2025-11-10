@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { TrendingUp, TrendingDown, RefreshCw, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -32,11 +33,13 @@ export default function ExchangeRate() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [rates, setRates] = useState<ExchangeRate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAutoMode, setIsAutoMode] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [formData, setFormData] = useState({
     from_currency: 'NGN',
     to_currency: 'USD',
     rate: '',
-    fee_percentage: '0'
+    fee_percentage: '0.5'
   });
   const { toast } = useToast();
 
@@ -62,6 +65,57 @@ export default function ExchangeRate() {
     }
   };
 
+  const fetchGoogleRates = async () => {
+    setSyncing(true);
+    try {
+      // Using exchangerate-api.com free tier - fetches NGN rates
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/NGN');
+      const data = await response.json();
+      
+      if (data.rates) {
+        const currencyPairs = [
+          { from: 'NGN', to: 'USD', rate: data.rates.USD },
+          { from: 'NGN', to: 'GBP', rate: data.rates.GBP },
+          { from: 'NGN', to: 'EUR', rate: data.rates.EUR },
+          { from: 'NGN', to: 'GHS', rate: data.rates.GHS },
+          { from: 'USD', to: 'NGN', rate: 1 / data.rates.USD },
+          { from: 'GBP', to: 'NGN', rate: 1 / data.rates.GBP },
+          { from: 'EUR', to: 'NGN', rate: 1 / data.rates.EUR },
+          { from: 'GHS', to: 'NGN', rate: 1 / data.rates.GHS },
+        ];
+
+        // Update all rates in database
+        for (const pair of currencyPairs) {
+          const feePercentage = pair.to === 'NGN' ? '0.5' : '0';
+          await fetch(getAdminApiUrl('/exchange_rates.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from_currency: pair.from,
+              to_currency: pair.to,
+              rate: pair.rate.toFixed(6),
+              fee_percentage: feePercentage
+            })
+          });
+        }
+
+        toast({
+          title: "Success",
+          description: "Exchange rates synced from Google"
+        });
+        fetchRates();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sync rates",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const response = await fetch(getAdminApiUrl('/exchange_rates.php'), {
@@ -83,7 +137,7 @@ export default function ExchangeRate() {
           from_currency: 'NGN',
           to_currency: 'USD',
           rate: '',
-          fee_percentage: '0'
+          fee_percentage: '0.5'
         });
       } else {
         throw new Error(data.message);
@@ -105,13 +159,9 @@ export default function ExchangeRate() {
           <p className="text-muted-foreground">Manage currency exchange rates and spreads</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Sync Rates
-          </Button>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>Update Rates</Button>
+              <Button variant="outline">Manual Update</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -177,6 +227,42 @@ export default function ExchangeRate() {
           </Dialog>
         </div>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Rate Mode</CardTitle>
+          <CardDescription>Choose between automatic Google rates or manual rate entry</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="auto-mode">Automatic Rate Sync</Label>
+              <p className="text-sm text-muted-foreground">
+                {isAutoMode ? "Using live Google exchange rates" : "Using manually configured rates"}
+              </p>
+            </div>
+            <Switch 
+              id="auto-mode"
+              checked={isAutoMode} 
+              onCheckedChange={setIsAutoMode}
+            />
+          </div>
+          {isAutoMode && (
+            <div className="mt-4">
+              <Button 
+                onClick={fetchGoogleRates}
+                disabled={syncing}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Rates Now'}
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2">
+                Automatically fetches latest exchange rates and applies 0.5% fee for conversions to NGN
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

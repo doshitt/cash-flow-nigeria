@@ -30,8 +30,8 @@ try {
         throw new Exception('Cannot convert to the same currency');
     }
     
-    // Get exchange rate
-    $stmt = $pdo->prepare("SELECT rate FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
+    // Get exchange rate and fee percentage
+    $stmt = $pdo->prepare("SELECT rate, fee_percentage FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
     $stmt->execute([$fromCurrency, $toCurrency]);
     $exchangeRate = $stmt->fetch();
     
@@ -54,11 +54,17 @@ try {
         
         $rateKey = $fromCurrency . '_' . $toCurrency;
         $rate = $rates[$rateKey] ?? 1;
+        $feePercentage = ($toCurrency === 'NGN') ? 0.5 : 0;
     } else {
         $rate = $exchangeRate['rate'];
+        $feePercentage = $exchangeRate['fee_percentage'] ?? 0;
     }
     
     $convertedAmount = $amount * $rate;
+    
+    // Apply conversion fee (for conversions to NGN)
+    $conversionFee = ($feePercentage > 0) ? ($convertedAmount * ($feePercentage / 100)) : 0;
+    $finalAmount = $convertedAmount - $conversionFee;
     
     $pdo->beginTransaction();
     
@@ -90,8 +96,8 @@ try {
         $stmt = $pdo->prepare("UPDATE wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
         $stmt->execute([$newFromBalance, $fromWallet['id']]);
         
-        // Add to destination wallet
-        $newToBalance = $toWallet['balance'] + $convertedAmount;
+        // Add to destination wallet (final amount after fee)
+        $newToBalance = $toWallet['balance'] + $finalAmount;
         $stmt = $pdo->prepare("UPDATE wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
         $stmt->execute([$newToBalance, $toWallet['id']]);
         
@@ -113,6 +119,11 @@ try {
         
         // Record credit transaction (deposit to destination currency)
         $creditTxnId = 'CVT' . time() . rand(1000, 9999);
+        $description = "Currency conversion from $fromCurrency";
+        if ($conversionFee > 0) {
+            $description .= " (Fee: " . number_format($conversionFee, 2) . " $toCurrency)";
+        }
+        
         $stmt = $pdo->prepare("
             INSERT INTO transactions (
                 transaction_id, user_id, transaction_type, 
@@ -122,9 +133,9 @@ try {
         $stmt->execute([
             $creditTxnId,
             $userId,
-            $convertedAmount,
+            $finalAmount,
             $toCurrency,
-            "Currency conversion from $fromCurrency"
+            $description
         ]);
         
         // Create notification for currency conversion (if table exists)
@@ -139,13 +150,37 @@ try {
                 $notificationId,
                 $userId,
                 'Currency Converted',
-                "Successfully converted {$fromCurrency} " . number_format($amount, 2) . " to {$toCurrency} " . number_format($convertedAmount, 2),
-                $convertedAmount,
+                "Successfully converted {$fromCurrency} " . number_format($amount, 2) . " to {$toCurrency} " . number_format($finalAmount, 2),
+                $finalAmount,
                 $toCurrency
             ]);
         } catch (Exception $notifError) {
             // Silently continue if notifications table doesn't exist
             error_log("Notification creation failed: " . $notifError->getMessage());
+        }
+        
+        // Track conversion fee for analytics (if table exists)
+        if ($conversionFee > 0) {
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO conversion_fees (
+                        transaction_id, user_id, from_currency, to_currency,
+                        conversion_amount, fee_amount, fee_percentage
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    $creditTxnId,
+                    $userId,
+                    $fromCurrency,
+                    $toCurrency,
+                    $convertedAmount,
+                    $conversionFee,
+                    $feePercentage
+                ]);
+            } catch (Exception $feeError) {
+                // Silently continue if conversion_fees table doesn't exist
+                error_log("Fee tracking failed: " . $feeError->getMessage());
+            }
         }
         
         $pdo->commit();
@@ -155,6 +190,8 @@ try {
             'message' => 'Currency converted successfully',
             'exchange_rate' => $rate,
             'converted_amount' => $convertedAmount,
+            'conversion_fee' => $conversionFee,
+            'final_amount' => $finalAmount,
             'from_balance' => $newFromBalance,
             'to_balance' => $newToBalance
         ]);
