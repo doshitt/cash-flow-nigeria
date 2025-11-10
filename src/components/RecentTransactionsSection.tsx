@@ -27,7 +27,7 @@ export const RecentTransactionsSection = () => {
     const loadTransactions = async () => {
       try {
         const token = localStorage.getItem('tesapay_session_token') || '';
-        const res = await fetch(`/backend/transactions.php?limit=5`, {
+        const res = await fetch(`${getApiUrl('/transactions.php')}?limit=5`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

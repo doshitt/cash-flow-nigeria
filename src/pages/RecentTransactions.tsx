@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { getApiUrl } from "@/config/api";
 
 interface Transaction {
   id: string;
@@ -69,7 +70,7 @@ const RecentTransactions = () => {
     const load = async () => {
       try {
         const token = localStorage.getItem('tesapay_session_token') || '';
-        const res = await fetch(`/backend/transactions.php?limit=100`, {
+        const res = await fetch(`${getApiUrl('/transactions.php')}?limit=100`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
