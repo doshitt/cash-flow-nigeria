@@ -44,7 +44,7 @@ try {
     }
     
     // Check user wallet balance (main wallet only)
-    $stmt = $pdo->prepare("SELECT id, balance, currency FROM wallets WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main' LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, balance, currency FROM wallets WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main' ORDER BY updated_at DESC, id DESC LIMIT 1");
     $stmt->execute([$userId]);
     $wallet = $stmt->fetch();
     
@@ -137,8 +137,8 @@ try {
     }
     
     // Deduct from wallet first (main wallet only)
-    $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main'");
-    $stmt->execute([$amount, $userId]);
+    $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE id = ?");
+    $stmt->execute([$amount, $wallet['id']]);
     
     // Make vend request to CoralPay
     $result = CoralPayConfig::makeRequest('/transactions/process-payment', 'POST', $vendData);
@@ -155,8 +155,8 @@ try {
         $responseMessage = $result['data']['message'] ?? 'Transaction successful';
     } else {
         // Refund wallet if vend failed
-        $stmt = $pdo->prepare("UPDATE wallets SET balance = balance + ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main'");
-        $stmt->execute([$amount, $userId]);
+        $stmt = $pdo->prepare("UPDATE wallets SET balance = balance + ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$amount, $wallet['id']]);
         
         $status = 'failed';
         $responseCode = $result['data']['responseCode'] ?? 'UNKNOWN';

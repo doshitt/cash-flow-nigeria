@@ -31,8 +31,8 @@ try {
     }
     
     // Get exchange rate
-$stmt = $pdo->prepare("SELECT rate FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
-$stmt->execute([$fromCurrency, $toCurrency]);
+    $stmt = $pdo->prepare("SELECT rate FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
+    $stmt->execute([$fromCurrency, $toCurrency]);
     $exchangeRate = $stmt->fetch();
     
     if (!$exchangeRate) {
@@ -95,35 +95,23 @@ $stmt->execute([$fromCurrency, $toCurrency]);
         $stmt = $pdo->prepare("UPDATE wallets SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
         $stmt->execute([$newToBalance, $toWallet['id']]);
         
-        // Record debit transaction
+        // Record debit transaction (withdrawal from source currency)
         $debitTxnId = 'CVT' . time() . rand(1000, 9999);
-        $stmt = $pdo->prepare("
-            INSERT INTO transactions (
-                transaction_id, user_id, wallet_id, transaction_type, 
-                amount, currency, status, description, created_at
-            ) VALUES (?, ?, ?, 'debit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)
-        ");
+        $stmt = $pdo->prepare("\n            INSERT INTO transactions (\n                transaction_id, user_id, transaction_type, \n                amount, currency, status, description, created_at\n            ) VALUES (?, ?, 'withdrawal', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)\n        ");
         $stmt->execute([
             $debitTxnId,
             $userId,
-            $fromWallet['id'],
             $amount,
             $fromCurrency,
             "Currency conversion to $toCurrency"
         ]);
         
-        // Record credit transaction
+        // Record credit transaction (deposit to destination currency)
         $creditTxnId = 'CVT' . time() . rand(1000, 9999);
-        $stmt = $pdo->prepare("
-            INSERT INTO transactions (
-                transaction_id, user_id, wallet_id, transaction_type, 
-                amount, currency, status, description, created_at
-            ) VALUES (?, ?, ?, 'credit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)
-        ");
+        $stmt = $pdo->prepare("\n            INSERT INTO transactions (\n                transaction_id, user_id, transaction_type, \n                amount, currency, status, description, created_at\n            ) VALUES (?, ?, 'deposit', ?, ?, 'completed', ?, CURRENT_TIMESTAMP)\n        ");
         $stmt->execute([
             $creditTxnId,
             $userId,
-            $toWallet['id'],
             $convertedAmount,
             $toCurrency,
             "Currency conversion from $fromCurrency"
@@ -131,11 +119,7 @@ $stmt->execute([$fromCurrency, $toCurrency]);
         
         // Create notification for currency conversion
         $notificationId = 'NOT' . time() . rand(1000, 9999);
-        $stmt = $pdo->prepare("
-            INSERT INTO notifications (
-                id, user_id, type, title, message, amount, currency, timestamp, `read`
-            ) VALUES (?, ?, 'success', ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)
-        ");
+        $stmt = $pdo->prepare("\n            INSERT INTO notifications (\n                id, user_id, type, title, message, amount, currency, timestamp, `read`\n            ) VALUES (?, ?, 'success', ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)\n        ");
         $stmt->execute([
             $notificationId,
             $userId,
