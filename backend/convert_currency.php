@@ -30,10 +30,20 @@ try {
         throw new Exception('Cannot convert to the same currency');
     }
     
-    // Get exchange rate and fee percentage
-    $stmt = $pdo->prepare("SELECT rate, fee_percentage FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
-    $stmt->execute([$fromCurrency, $toCurrency]);
-    $exchangeRate = $stmt->fetch();
+    // Get exchange rate and fee percentage (with fallback if column doesn't exist)
+    try {
+        $stmt = $pdo->prepare("SELECT rate, fee_percentage FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
+        $stmt->execute([$fromCurrency, $toCurrency]);
+        $exchangeRate = $stmt->fetch();
+    } catch (PDOException $e) {
+        // Fallback if fee_percentage column doesn't exist yet
+        $stmt = $pdo->prepare("SELECT rate FROM exchange_rates WHERE from_currency = ? AND to_currency = ? LIMIT 1");
+        $stmt->execute([$fromCurrency, $toCurrency]);
+        $exchangeRate = $stmt->fetch();
+        if ($exchangeRate) {
+            $exchangeRate['fee_percentage'] = ($toCurrency === 'NGN') ? 0.5 : 0;
+        }
+    }
     
     if (!$exchangeRate) {
         // Default exchange rates if not found in database
