@@ -56,6 +56,22 @@ try {
                 "Admin Fund Addition: " . $adminNote
             ]);
             
+            // Create notification for fund addition
+            $notificationId = 'NOT' . time() . rand(1000, 9999);
+            $stmt = $pdo->prepare("
+                INSERT INTO notifications (
+                    id, user_id, type, title, message, amount, currency, timestamp, `read`
+                ) VALUES (?, ?, 'inflow', ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)
+            ");
+            $stmt->execute([
+                $notificationId,
+                $userId,
+                'Fund Added',
+                "Administrator added {$currency} " . number_format($amount, 2) . " to your wallet. " . ($adminNote ? "Note: {$adminNote}" : ""),
+                $amount,
+                $currency
+            ]);
+            
             $pdo->commit();
             
             echo json_encode([

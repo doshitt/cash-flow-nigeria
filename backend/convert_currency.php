@@ -129,6 +129,22 @@ $stmt->execute([$fromCurrency, $toCurrency]);
             "Currency conversion from $fromCurrency"
         ]);
         
+        // Create notification for currency conversion
+        $notificationId = 'NOT' . time() . rand(1000, 9999);
+        $stmt = $pdo->prepare("
+            INSERT INTO notifications (
+                id, user_id, type, title, message, amount, currency, timestamp, `read`
+            ) VALUES (?, ?, 'success', ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)
+        ");
+        $stmt->execute([
+            $notificationId,
+            $userId,
+            'Currency Converted',
+            "Successfully converted {$fromCurrency} " . number_format($amount, 2) . " to {$toCurrency} " . number_format($convertedAmount, 2),
+            $convertedAmount,
+            $toCurrency
+        ]);
+        
         $pdo->commit();
         
         echo json_encode([

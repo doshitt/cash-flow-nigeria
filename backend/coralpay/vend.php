@@ -43,8 +43,8 @@ try {
         exit();
     }
     
-    // Check user wallet balance
-    $stmt = $pdo->prepare("SELECT balance, currency FROM wallets WHERE user_id = ? AND currency = 'NGN'");
+    // Check user wallet balance (main wallet only)
+    $stmt = $pdo->prepare("SELECT id, balance, currency FROM wallets WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main' LIMIT 1");
     $stmt->execute([$userId]);
     $wallet = $stmt->fetch();
     
@@ -136,8 +136,8 @@ try {
         }
     }
     
-    // Deduct from wallet first
-    $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");
+    // Deduct from wallet first (main wallet only)
+    $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main'");
     $stmt->execute([$amount, $userId]);
     
     // Make vend request to CoralPay
@@ -155,7 +155,7 @@ try {
         $responseMessage = $result['data']['message'] ?? 'Transaction successful';
     } else {
         // Refund wallet if vend failed
-        $stmt = $pdo->prepare("UPDATE wallets SET balance = balance + ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN'");
+        $stmt = $pdo->prepare("UPDATE wallets SET balance = balance + ?, updated_at = NOW() WHERE user_id = ? AND currency = 'NGN' AND wallet_type = 'main'");
         $stmt->execute([$amount, $userId]);
         
         $status = 'failed';
@@ -215,6 +215,30 @@ try {
         $paymentReference,
         $status,
         $coralPayResponse
+    ]);
+    
+    // Create notification for the transaction
+    $notificationId = 'NOT' . time() . rand(1000, 9999);
+    $notificationType = $status === 'completed' ? 'outflow' : 'system';
+    $notificationTitle = $status === 'completed' ? 
+        ucfirst($billerType) . ' Purchase Successful' : 
+        ucfirst($billerType) . ' Purchase Failed';
+    $notificationMessage = $status === 'completed' ?
+        "Successfully purchased {$billerType} for {$customerId}. Amount: ₦" . number_format($amount, 2) :
+        "Failed to purchase {$billerType} for {$customerId}. " . ($responseMessage ?? '');
+    
+    $stmt = $pdo->prepare("
+        INSERT INTO notifications (
+            id, user_id, type, title, message, amount, currency, timestamp, `read`
+        ) VALUES (?, ?, ?, ?, ?, ?, 'NGN', NOW(), 0)
+    ");
+    $stmt->execute([
+        $notificationId,
+        $userId,
+        $notificationType,
+        $notificationTitle,
+        $notificationMessage,
+        $amount
     ]);
     
     if ($status === 'completed') {
