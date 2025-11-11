@@ -176,7 +176,6 @@ export default function PaymentRequests() {
                   <TableHead>Type</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Details</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
@@ -200,22 +199,6 @@ export default function PaymentRequests() {
                     <TableCell className="font-medium">
                       {request.currency} {request.amount.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {request.transfer_type === 'momo' && (
-                        <div>
-                          <p>MOMO: {request.recipient_info.momoNumber}</p>
-                          <p className="text-xs text-muted-foreground">{request.recipient_info.momoName}</p>
-                        </div>
-                      )}
-                      {request.transfer_type === 'crypto' && (
-                        <div>
-                          <p>{request.recipient_info.cryptoType} ({request.recipient_info.networkType})</p>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {request.recipient_info.walletAddress?.substring(0, 20)}...
-                          </p>
-                        </div>
-                      )}
-                    </TableCell>
                     <TableCell>
                       <Badge 
                         variant={
@@ -231,32 +214,44 @@ export default function PaymentRequests() {
                       {new Date(request.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      {request.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setActionType('approve');
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setActionType('reject');
-                            }}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setActionType(null);
+                          }}
+                        >
+                          View
+                        </Button>
+                        {request.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setActionType('approve');
+                              }}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setActionType('reject');
+                              }}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -266,47 +261,156 @@ export default function PaymentRequests() {
         </CardContent>
       </Card>
 
-      {/* Action Dialog */}
+      {/* View/Action Dialog */}
       <Dialog open={!!selectedRequest} onOpenChange={() => {
         setSelectedRequest(null);
         setActionType(null);
         setAdminNotes('');
       }}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {actionType === 'approve' ? 'Approve' : 'Reject'} Payment Request
+              {actionType === 'approve' ? 'Approve Payment Request' : 
+               actionType === 'reject' ? 'Reject Payment Request' : 
+               'Payment Request Details'}
             </DialogTitle>
-            <DialogDescription>
-              {actionType === 'reject' && 'Please provide a reason for rejection'}
-            </DialogDescription>
+            {actionType === 'reject' && (
+              <DialogDescription>
+                Please provide a reason for rejection. All fees will be refunded to the user.
+              </DialogDescription>
+            )}
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Admin Notes {actionType === 'reject' && '(Required)'}</Label>
-              <Textarea
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder={actionType === 'reject' ? 'Enter rejection reason...' : 'Optional notes...'}
-                required={actionType === 'reject'}
-              />
+          
+          {selectedRequest && (
+            <div className="space-y-4">
+              {/* Transaction Details */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Transaction ID</Label>
+                  <p className="font-mono text-sm">{selectedRequest.id}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Type</Label>
+                  <Badge className="mt-1" variant={selectedRequest.transfer_type === 'momo' ? 'default' : 'secondary'}>
+                    {selectedRequest.transfer_type.toUpperCase()}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">User</Label>
+                  <p className="font-medium">{selectedRequest.first_name} {selectedRequest.last_name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedRequest.email}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Amount</Label>
+                  <p className="font-semibold">{selectedRequest.currency} {selectedRequest.amount.toFixed(2)}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Badge 
+                    className="mt-1"
+                    variant={
+                      selectedRequest.status === 'approved' ? 'default' :
+                      selectedRequest.status === 'rejected' ? 'destructive' :
+                      'secondary'
+                    }
+                  >
+                    {selectedRequest.status}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Date</Label>
+                  <p className="text-sm">{new Date(selectedRequest.created_at).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Recipient Details */}
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <Label className="text-sm font-semibold mb-2 block">Recipient Information</Label>
+                {selectedRequest.transfer_type === 'momo' && (
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">MOMO Number</Label>
+                      <p className="font-mono">{selectedRequest.recipient_info.momoNumber}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Name</Label>
+                      <p>{selectedRequest.recipient_info.momoName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Platform Fee</Label>
+                      <p>GHS {selectedRequest.recipient_info.platformFee?.toFixed(2)}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedRequest.transfer_type === 'crypto' && (
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Cryptocurrency</Label>
+                      <p>{selectedRequest.recipient_info.cryptoType}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Network</Label>
+                      <p>{selectedRequest.recipient_info.networkType}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Wallet Address</Label>
+                      <p className="font-mono text-xs break-all">{selectedRequest.recipient_info.walletAddress}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Platform Fee</Label>
+                        <p>USD {selectedRequest.recipient_info.platformFee?.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Blockchain Fee</Label>
+                        <p>USD {selectedRequest.recipient_info.blockchainFee?.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Admin Notes Section (for action) */}
+              {actionType && (
+                <div>
+                  <Label>Admin Notes {actionType === 'reject' && '(Required)'}</Label>
+                  <Textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder={actionType === 'reject' ? 'Enter rejection reason...' : 'Optional notes...'}
+                    required={actionType === 'reject'}
+                    className="mt-2"
+                  />
+                </div>
+              )}
+
+              {/* Show existing admin notes if any */}
+              {selectedRequest.admin_notes && !actionType && (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <Label className="text-xs text-muted-foreground">Admin Notes</Label>
+                  <p className="text-sm mt-1">{selectedRequest.admin_notes}</p>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setSelectedRequest(null);
               setActionType(null);
               setAdminNotes('');
             }}>
-              Cancel
+              {actionType ? 'Cancel' : 'Close'}
             </Button>
-            <Button 
-              onClick={handleAction}
-              disabled={actionType === 'reject' && !adminNotes.trim()}
-              variant={actionType === 'approve' ? 'default' : 'destructive'}
-            >
-              {actionType === 'approve' ? 'Approve' : 'Reject'}
-            </Button>
+            {actionType && (
+              <Button 
+                onClick={handleAction}
+                disabled={actionType === 'reject' && !adminNotes.trim()}
+                variant={actionType === 'approve' ? 'default' : 'destructive'}
+              >
+                {actionType === 'approve' ? 'Approve' : 'Reject'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

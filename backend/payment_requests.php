@@ -133,64 +133,107 @@ try {
         $status = $input['status']; // 'approved' or 'rejected'
         $admin_notes = $input['admin_notes'] ?? '';
         
-        $pdo->beginTransaction();
-        
-        // Get request details
-        $stmt = $pdo->prepare("SELECT * FROM payment_requests WHERE id = ?");
-        $stmt->execute([$request_id]);
-        $request = $stmt->fetch();
-        
-        if (!$request) {
-            echo json_encode(['success' => false, 'message' => 'Request not found']);
+        if (!in_array($status, ['approved', 'rejected'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid status']);
             exit;
         }
         
-        // Update request status
-        $stmt = $pdo->prepare("
-            UPDATE payment_requests 
-            SET status = ?, admin_notes = ?, updated_at = NOW()
-            WHERE id = ?
-        ");
-        $stmt->execute([$status, $admin_notes, $request_id]);
+        $pdo->beginTransaction();
         
-        // Update transaction status
-        $stmt = $pdo->prepare("
-            UPDATE transactions 
-            SET status = ?
-            WHERE transaction_id = ?
-        ");
-        $stmt->execute([$status === 'approved' ? 'completed' : 'failed', $request['transaction_id']]);
-        
-        // If rejected, refund the user
-        if ($status === 'rejected') {
-            $stmt = $pdo->prepare("
-                UPDATE wallets 
-                SET balance = balance + ?, updated_at = NOW()
-                WHERE user_id = ? AND currency = ?
-            ");
-            $stmt->execute([$request['amount'], $request['user_id'], $request['currency']]);
+        try {
+            // Get request details (request_id is transaction_id)
+            $stmt = $pdo->prepare("SELECT * FROM payment_requests WHERE transaction_id = ?");
+            $stmt->execute([$request_id]);
+            $request = $stmt->fetch();
             
-            // Record refund transaction
+            if (!$request) {
+                throw new Exception('Request not found');
+            }
+            
+            if ($request['status'] !== 'pending') {
+                throw new Exception('Request already processed');
+            }
+            
+            // Update request status
             $stmt = $pdo->prepare("
-                INSERT INTO transactions 
-                (transaction_id, user_id, transaction_type, amount, currency, status, description, created_at) 
-                VALUES (?, ?, 'refund', ?, ?, 'completed', ?, NOW())
+                UPDATE payment_requests 
+                SET status = ?, admin_notes = ?, updated_at = NOW()
+                WHERE transaction_id = ?
+            ");
+            $stmt->execute([$status, $admin_notes, $request_id]);
+            
+            // Update main transaction status
+            $stmt = $pdo->prepare("
+                UPDATE transactions 
+                SET status = ?
+                WHERE transaction_id = ?
+            ");
+            $stmt->execute([$status === 'approved' ? 'completed' : 'rejected', $request_id]);
+            
+            // Update fee transactions status
+            $stmt = $pdo->prepare("
+                UPDATE transactions 
+                SET status = ? 
+                WHERE user_id = ? AND transaction_type = 'fee' AND status = 'processing' 
+                AND transaction_id LIKE 'FEE_%' OR transaction_id LIKE 'BFEE_%'
+                AND created_at >= (SELECT created_at FROM (SELECT created_at FROM transactions WHERE transaction_id = ?) as t)
             ");
             $stmt->execute([
-                'REF_' . time() . rand(1000, 9999),
+                $status === 'approved' ? 'completed' : 'rejected',
                 $request['user_id'],
-                $request['amount'],
-                $request['currency'],
-                'Refund: ' . $request['description'] . ' - Reason: ' . $admin_notes
+                $request_id
             ]);
+            
+            // If rejected, refund the user (including all fees)
+            if ($status === 'rejected') {
+                $recipient_info = json_decode($request['recipient_info'], true);
+                
+                // Calculate total refund (original amount + all fees)
+                $refund_amount = $request['amount'];
+                
+                // Add platform fee
+                if (isset($recipient_info['platformFee'])) {
+                    $refund_amount += $recipient_info['platformFee'];
+                }
+                
+                // Add blockchain fee if crypto
+                if (isset($recipient_info['blockchainFee'])) {
+                    $refund_amount += $recipient_info['blockchainFee'];
+                }
+                
+                // Refund to user's wallet
+                $stmt = $pdo->prepare("
+                    UPDATE wallets 
+                    SET balance = balance + ?, updated_at = NOW()
+                    WHERE user_id = ? AND currency = ?
+                ");
+                $stmt->execute([$refund_amount, $request['user_id'], $request['currency']]);
+                
+                // Record refund transaction
+                $stmt = $pdo->prepare("
+                    INSERT INTO transactions 
+                    (transaction_id, user_id, transaction_type, amount, currency, status, description, created_at) 
+                    VALUES (?, ?, 'refund', ?, ?, 'completed', ?, NOW())
+                ");
+                $stmt->execute([
+                    'REF_' . time() . rand(1000, 9999),
+                    $request['user_id'],
+                    $refund_amount,
+                    $request['currency'],
+                    'Refund for rejected ' . $request['transfer_type'] . ' transfer. Reason: ' . $admin_notes
+                ]);
+            }
+            
+            $pdo->commit();
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => "Payment request $status successfully"
+            ]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
-        
-        $pdo->commit();
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => "Payment request $status successfully"
-        ]);
     }
     
 } catch (PDOException $e) {

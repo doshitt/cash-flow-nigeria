@@ -47,6 +47,102 @@ try {
             exit;
         }
         
+        // For crypto and MOMO, create payment request with "processing" status
+        if ($transfer_type === 'crypto' || $transfer_type === 'momo') {
+            // Start transaction
+            $pdo->beginTransaction();
+            
+            try {
+                // Deduct from sender's wallet immediately
+                $stmt = $pdo->prepare("UPDATE wallets SET balance = balance - ? WHERE user_id = ? AND currency = ?");
+                $stmt->execute([$amount, $user_id, $currency]);
+                
+                // Generate transaction ID
+                $transaction_id = 'TXN_' . uniqid();
+                
+                // Create payment request
+                $stmt = $pdo->prepare("
+                    INSERT INTO payment_requests 
+                    (transaction_id, user_id, transfer_type, amount, currency, recipient_info, description, status) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+                ");
+                $stmt->execute([
+                    $transaction_id,
+                    $user_id,
+                    $transfer_type,
+                    $recipient_info['sendAmount'] ?? $amount,
+                    $currency,
+                    json_encode($recipient_info),
+                    $description
+                ]);
+                
+                // Record the transaction with "processing" status
+                $stmt = $pdo->prepare("
+                    INSERT INTO transactions 
+                    (transaction_id, user_id, transaction_type, amount, currency, status, description, recipient_info) 
+                    VALUES (?, ?, 'transfer', ?, ?, 'processing', ?, ?)
+                ");
+                $stmt->execute([
+                    $transaction_id,
+                    $user_id,
+                    $recipient_info['sendAmount'] ?? $amount,
+                    $currency,
+                    $description,
+                    json_encode($recipient_info)
+                ]);
+                
+                // Record platform fee separately
+                if (isset($recipient_info['platformFee']) && $recipient_info['platformFee'] > 0) {
+                    $fee_transaction_id = 'FEE_' . uniqid();
+                    $fee_desc = $transfer_type === 'crypto' ? 'Crypto Processing Fee' : 'MOMO Processing Fee';
+                    $stmt = $pdo->prepare("
+                        INSERT INTO transactions 
+                        (transaction_id, user_id, transaction_type, amount, currency, status, description) 
+                        VALUES (?, ?, 'fee', ?, ?, 'processing', ?)
+                    ");
+                    $stmt->execute([
+                        $fee_transaction_id,
+                        $user_id,
+                        $recipient_info['platformFee'],
+                        $currency,
+                        $fee_desc
+                    ]);
+                }
+                
+                // Record blockchain fee if crypto
+                if ($transfer_type === 'crypto' && isset($recipient_info['blockchainFee']) && $recipient_info['blockchainFee'] > 0) {
+                    $blockchain_fee_id = 'BFEE_' . uniqid();
+                    $stmt = $pdo->prepare("
+                        INSERT INTO transactions 
+                        (transaction_id, user_id, transaction_type, amount, currency, status, description) 
+                        VALUES (?, ?, 'fee', ?, ?, 'processing', 'Blockchain Fee')
+                    ");
+                    $stmt->execute([
+                        $blockchain_fee_id,
+                        $user_id,
+                        $recipient_info['blockchainFee'],
+                        $currency
+                    ]);
+                }
+                
+                $pdo->commit();
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Payment request submitted successfully. Awaiting admin approval.',
+                    'transaction_id' => $transaction_id,
+                    'status' => 'processing'
+                ]);
+                exit;
+                
+            } catch (Exception $e) {
+                $pdo->rollback();
+                echo json_encode(['success' => false, 'message' => 'Transfer failed: ' . $e->getMessage()]);
+                exit;
+            }
+        }
+        
+        // For other transfer types (Tesapay, Nigeria, International banks)
         // Calculate transfer fee (1% for Tesapay, 2% for Nigeria banks, 3% for international)
         $fee_rate = 0.01; // Default 1%
         switch ($transfer_type) {
@@ -95,37 +191,6 @@ try {
                 $transfer_fee,
                 json_encode($recipient_info)
             ]);
-            
-            // Record platform fee separately for crypto and MOMO transfers
-            if ($transfer_type === 'crypto' && isset($recipient_info['platformFee']) && $recipient_info['platformFee'] > 0) {
-                $fee_transaction_id = 'FEE_' . uniqid();
-                $stmt = $pdo->prepare("
-                    INSERT INTO transactions 
-                    (transaction_id, user_id, transaction_type, amount, currency, status, description) 
-                    VALUES (?, ?, 'fee', ?, ?, 'completed', 'Crypto Processing Fee')
-                ");
-                $stmt->execute([
-                    $fee_transaction_id,
-                    $user_id,
-                    $recipient_info['platformFee'],
-                    $currency,
-                ]);
-            }
-            
-            if ($transfer_type === 'momo' && isset($recipient_info['platformFee']) && $recipient_info['platformFee'] > 0) {
-                $fee_transaction_id = 'FEE_' . uniqid();
-                $stmt = $pdo->prepare("
-                    INSERT INTO transactions 
-                    (transaction_id, user_id, transaction_type, amount, currency, status, description) 
-                    VALUES (?, ?, 'fee', ?, ?, 'completed', 'MOMO Processing Fee')
-                ");
-                $stmt->execute([
-                    $fee_transaction_id,
-                    $user_id,
-                    $recipient_info['platformFee'],
-                    $currency,
-                ]);
-            }
             
             // For Tesapay transfers, credit the recipient's wallet
             if ($transfer_type === 'tesapay') {

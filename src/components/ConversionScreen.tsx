@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,13 +23,6 @@ const currencyInfo = {
   GHS: { name: "Ghanaian Cedi", symbol: "₵" }
 };
 
-const exchangeRates: Record<string, Record<string, number>> = {
-  NGN: { USD: 0.0013, GBP: 0.0010, EUR: 0.0012 },
-  USD: { NGN: 770, GBP: 0.79, EUR: 0.92 },
-  GBP: { NGN: 1000, USD: 1.27, EUR: 1.16 },
-  EUR: { NGN: 833, USD: 1.09, GBP: 0.86 }
-};
-
 export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenProps) => {
   const { user, wallets, checkSession } = useAuth();
   const [fromCurrency, setFromCurrency] = useState("");
@@ -38,7 +31,31 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [conversionResult, setConversionResult] = useState<{from: string, to: string, amount: number, converted: number} | null>(null);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
+  const [isLoadingRates, setIsLoadingRates] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchExchangeRates();
+  }, []);
+
+  const fetchExchangeRates = async () => {
+    try {
+      const response = await fetch(getApiUrl('/admin/exchange_rates.php'));
+      const data = await response.json();
+      if (data.success && data.data) {
+        const rates: Record<string, number> = {};
+        data.data.forEach((rate: any) => {
+          rates[`${rate.from_currency}_${rate.to_currency}`] = parseFloat(rate.rate);
+        });
+        setExchangeRates(rates);
+      }
+    } catch (error) {
+      console.error('Failed to fetch exchange rates:', error);
+    } finally {
+      setIsLoadingRates(false);
+    }
+  };
 
   const fromWallet = wallets?.find(w => w.currency === fromCurrency);
   const toWallet = wallets?.find(w => w.currency === toCurrency);
@@ -47,7 +64,7 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
 
   const getExchangeRate = () => {
     if (!fromCurrency || !toCurrency) return 1;
-    return exchangeRates[fromCurrency]?.[toCurrency] || 1;
+    return exchangeRates[`${fromCurrency}_${toCurrency}`] || 1;
   };
 
   const calculateConversion = () => {

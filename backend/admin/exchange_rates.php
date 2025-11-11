@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -14,48 +14,28 @@ try {
     $pdo = new PDO($dsn, $username, $password, $options);
     
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        $stmt = $pdo->query("
-            SELECT * FROM exchange_rates 
-            WHERE status = 'active'
-            ORDER BY from_currency, to_currency
-        ");
-        $rates = $stmt->fetchAll();
+        // Fetch all exchange rates
+        $stmt = $pdo->query("SELECT * FROM exchange_rates WHERE status = 'active' ORDER BY from_currency, to_currency");
+        $rates = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         echo json_encode(['success' => true, 'data' => $rates]);
         
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Update exchange rate
         $input = json_decode(file_get_contents('php://input'), true);
         
         $stmt = $pdo->prepare("
             INSERT INTO exchange_rates (from_currency, to_currency, rate, fee_percentage, status)
-            VALUES (:from_currency, :to_currency, :rate, :fee_percentage, 'active')
+            VALUES (:from, :to, :rate, :fee, 'active')
             ON DUPLICATE KEY UPDATE 
-            rate = :rate, fee_percentage = :fee_percentage, updated_at = NOW()
+            rate = :rate, fee_percentage = :fee, updated_at = NOW()
         ");
         
         $stmt->execute([
-            'from_currency' => $input['from_currency'],
-            'to_currency' => $input['to_currency'],
+            'from' => $input['from_currency'],
+            'to' => $input['to_currency'],
             'rate' => $input['rate'],
-            'fee_percentage' => $input['fee_percentage'] ?? 0
-        ]);
-        
-        echo json_encode(['success' => true, 'message' => 'Exchange rate updated successfully']);
-        
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $stmt = $pdo->prepare("
-            UPDATE exchange_rates 
-            SET rate = :rate, fee_percentage = :fee_percentage, status = :status, updated_at = NOW()
-            WHERE id = :id
-        ");
-        
-        $stmt->execute([
-            'rate' => $input['rate'],
-            'fee_percentage' => $input['fee_percentage'],
-            'status' => $input['status'],
-            'id' => $input['id']
+            'fee' => $input['fee_percentage'] ?? 0
         ]);
         
         echo json_encode(['success' => true, 'message' => 'Exchange rate updated successfully']);
