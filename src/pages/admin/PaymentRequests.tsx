@@ -43,7 +43,14 @@ export default function PaymentRequests() {
       const data = await response.json();
       
       if (data.success) {
-        setRequests(data.data);
+        // Parse recipient_info if it's a string
+        const parsedRequests = data.data.map((req: any) => ({
+          ...req,
+          recipient_info: typeof req.recipient_info === 'string' 
+            ? JSON.parse(req.recipient_info) 
+            : req.recipient_info
+        }));
+        setRequests(parsedRequests);
       }
     } catch (error) {
       toast({

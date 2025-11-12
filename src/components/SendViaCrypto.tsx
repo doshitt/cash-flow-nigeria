@@ -5,10 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TransferData } from "@/pages/Transfer";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiUrl } from "@/config/api";
+import { useToast } from "@/hooks/use-toast";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface SendViaCryptoProps {
   onSubmit: (data: TransferData) => void;
@@ -32,6 +34,9 @@ interface PlatformFee {
 export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
   const [showWarning, setShowWarning] = useState(true);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pin, setPin] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const [cryptoFees, setCryptoFees] = useState<CryptoFee[]>([]);
   const [platformFees, setPlatformFees] = useState<PlatformFee[]>([]);
   const [formData, setFormData] = useState({
@@ -40,7 +45,8 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
     networkType: '',
     amount: ''
   });
-  const { wallets } = useAuth();
+  const { wallets, user } = useAuth();
+  const { toast } = useToast();
 
   const usdWallet = wallets.find(w => w.currency === 'USD');
   const usdBalance = parseFloat(usdWallet?.balance as any) || 0;
@@ -115,7 +121,11 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
     const minAmount = getMinAmount();
     
     if (amount < minAmount) {
-      alert(`Minimum amount for ${formData.cryptoType} on ${formData.networkType} is $${minAmount}`);
+      toast({
+        title: "Invalid Amount",
+        description: `Minimum amount for ${formData.cryptoType} on ${formData.networkType} is $${minAmount}`,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -126,20 +136,70 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
       return;
     }
     
-    onSubmit({
-      type: 'crypto',
-      amount: fees.total,
-      currency: 'USD',
-      recipientInfo: {
-        cryptoType: formData.cryptoType,
-        walletAddress: formData.walletAddress,
-        networkType: formData.networkType,
-        sendAmount: amount,
-        platformFee: fees.platformFee,
-        blockchainFee: fees.blockchainFee
-      },
-      description: `Crypto transfer - ${formData.cryptoType} (${formData.networkType})`
-    });
+    // Show PIN dialog
+    setShowPinDialog(true);
+  };
+
+  const handlePinVerify = async () => {
+    if (pin.length !== 5) {
+      toast({
+        title: "Invalid PIN",
+        description: "Please enter your 5-digit transaction PIN",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setVerifying(true);
+    
+    try {
+      const response = await fetch(getApiUrl('/verify_pin.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.id,
+          transaction_pin: pin
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowPinDialog(false);
+        const amount = parseFloat(formData.amount);
+        const fees = calculateFees();
+        
+        onSubmit({
+          type: 'crypto',
+          amount: fees.total,
+          currency: 'USD',
+          recipientInfo: {
+            cryptoType: formData.cryptoType,
+            walletAddress: formData.walletAddress,
+            networkType: formData.networkType,
+            sendAmount: amount,
+            platformFee: fees.platformFee,
+            blockchainFee: fees.blockchainFee
+          },
+          description: `Crypto transfer - ${formData.cryptoType} (${formData.networkType})`
+        });
+      } else {
+        toast({
+          title: "Wrong Transaction PIN",
+          description: "Wrong transaction PIN. Try again.",
+          variant: "destructive"
+        });
+        setPin("");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify PIN",
+        variant: "destructive"
+      });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const fees = calculateFees();
@@ -176,6 +236,42 @@ export const SendViaCrypto = ({ onSubmit, onBack }: SendViaCryptoProps) => {
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowInsufficientBalance(false)}>
               OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* PIN Verification Dialog */}
+      <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter Transaction PIN</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter your 5-digit transaction PIN to confirm this crypto transfer
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-center py-4">
+            <InputOTP
+              maxLength={5}
+              value={pin}
+              onChange={(value) => setPin(value)}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowPinDialog(false);
+              setPin("");
+            }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePinVerify} disabled={verifying || pin.length !== 5}>
+              {verifying ? "Verifying..." : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

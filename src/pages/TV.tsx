@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiUrl } from "@/config/api";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface TVPackage {
   id: number;
@@ -36,6 +38,9 @@ export default function TV() {
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(true);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pin, setPin] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     fetchProviders();
@@ -109,30 +114,30 @@ export default function TV() {
 
     setLoading(true);
     try {
-      // For TV validation, we need a package selected if available
-      const requestBody: any = {
-        customerId: smartcardNumber,
-        billerSlug: selectedProvider
-      };
-      
-      // Add productName if package is selected
-      if (selectedPackage) {
-        requestBody.productName = selectedPackage;
-      }
-
       const response = await fetch(`${getApiUrl('')}/coralpay/customer_lookup.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          customerId: smartcardNumber,
+          billerSlug: selectedProvider,
+          productName: selectedPackage || undefined
+        })
       });
 
       const result = await response.json();
 
-      if (result.success || result.data?.statusCode === '30') {
-        setCustomerInfo(result.data || { customer: { customerName: smartcardNumber }, validated: true });
+      if (result.success && result.data) {
+        const customerName = result.data.customer?.customerName || result.data.customer?.firstName + ' ' + result.data.customer?.lastName || smartcardNumber;
+        setCustomerInfo({ 
+          customer: { 
+            customerName: customerName,
+            ...result.data.customer 
+          }, 
+          validated: true 
+        });
         toast({
           title: "Smartcard Validated",
-          description: result.data?.customer?.customerName || 'Smartcard validated'
+          description: `Customer: ${customerName}`
         });
       } else {
         toast({
@@ -162,6 +167,59 @@ export default function TV() {
       return;
     }
 
+    const selectedPkg = packages.find(p => p.slug === selectedPackage);
+    if (!selectedPkg) return;
+
+    setShowPinDialog(true);
+  };
+
+  const handlePinVerify = async () => {
+    if (pin.length !== 5) {
+      toast({
+        title: "Invalid PIN",
+        description: "Please enter your 5-digit transaction PIN",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setVerifying(true);
+    
+    try {
+      const response = await fetch(getApiUrl('/verify_pin.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.id,
+          transaction_pin: pin
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowPinDialog(false);
+        await processSubscription();
+      } else {
+        toast({
+          title: "Wrong Transaction PIN",
+          description: "Wrong transaction PIN. Try again.",
+          variant: "destructive"
+        });
+        setPin("");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify PIN",
+        variant: "destructive"
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const processSubscription = async () => {
     const selectedPkg = packages.find(p => p.slug === selectedPackage);
     if (!selectedPkg) return;
 
@@ -213,6 +271,7 @@ export default function TV() {
       });
     } finally {
       setLoading(false);
+      setPin("");
     }
   };
 
@@ -305,6 +364,42 @@ export default function TV() {
           </Button>
         </Card>
       </div>
+
+      {/* PIN Verification Dialog */}
+      <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter Transaction PIN</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter your 5-digit transaction PIN to confirm this TV subscription
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-center py-4">
+            <InputOTP
+              maxLength={5}
+              value={pin}
+              onChange={(value) => setPin(value)}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowPinDialog(false);
+              setPin("");
+            }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePinVerify} disabled={verifying || pin.length !== 5}>
+              {verifying ? "Verifying..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

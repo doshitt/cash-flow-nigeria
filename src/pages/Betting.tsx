@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiUrl } from "@/config/api";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface BettingProvider {
   id: number;
@@ -31,6 +33,9 @@ export default function Betting() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pin, setPin] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     fetchProviders();
@@ -102,12 +107,18 @@ export default function Betting() {
 
       const result = await response.json();
 
-      // Accept validation even if statusCode is 30 (productName required)
-      if (result.success || result.data?.statusCode === '30') {
-        setCustomerInfo(result.data || { customer: { customerName: customerId }, validated: true });
+      if (result.success && result.data) {
+        const customerName = result.data.customer?.customerName || result.data.customer?.firstName + ' ' + result.data.customer?.lastName || customerId;
+        setCustomerInfo({ 
+          customer: { 
+            customerName: customerName,
+            ...result.data.customer 
+          }, 
+          validated: true 
+        });
         toast({
           title: "Customer Validated",
-          description: result.data?.customer?.customerName || "Customer ID validated"
+          description: `Customer: ${customerName}`
         });
       } else {
         toast({
@@ -146,6 +157,58 @@ export default function Betting() {
       });
       return;
     }
+
+    setShowPinDialog(true);
+  };
+
+  const handlePinVerify = async () => {
+    if (pin.length !== 5) {
+      toast({
+        title: "Invalid PIN",
+        description: "Please enter your 5-digit transaction PIN",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setVerifying(true);
+    
+    try {
+      const response = await fetch(getApiUrl('/verify_pin.php'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.id,
+          transaction_pin: pin
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowPinDialog(false);
+        await processTopUp();
+      } else {
+        toast({
+          title: "Wrong Transaction PIN",
+          description: "Wrong transaction PIN. Try again.",
+          variant: "destructive"
+        });
+        setPin("");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify PIN",
+        variant: "destructive"
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const processTopUp = async () => {
+    const amountNum = parseFloat(amount);
 
     setIsLoading(true);
     try {
@@ -206,6 +269,7 @@ export default function Betting() {
       });
     } finally {
       setIsLoading(false);
+      setPin("");
     }
   };
 
@@ -345,6 +409,42 @@ export default function Betting() {
           </CardContent>
         </Card>
       </div>
+
+      {/* PIN Verification Dialog */}
+      <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter Transaction PIN</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter your 5-digit transaction PIN to confirm this betting top-up
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-center py-4">
+            <InputOTP
+              maxLength={5}
+              value={pin}
+              onChange={(value) => setPin(value)}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowPinDialog(false);
+              setPin("");
+            }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePinVerify} disabled={verifying || pin.length !== 5}>
+              {verifying ? "Verifying..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
