@@ -20,9 +20,16 @@ try {
         // Create new payment request (MOMO or Crypto)
         $user_id = $input['user_id'];
         $transfer_type = $input['transfer_type']; // 'momo' or 'crypto'
-        $amount = $input['amount'];
         $currency = $input['currency'];
-        $recipient_info = json_encode($input['recipient_info']);
+        
+        // Calculate total amount to deduct (sendAmount + fees) when details are provided
+        $recipient_info_array = $input['recipient_info'] ?? [];
+        $sendAmount = isset($recipient_info_array['sendAmount']) ? (float)$recipient_info_array['sendAmount'] : null;
+        $platformFee = isset($recipient_info_array['platformFee']) ? (float)$recipient_info_array['platformFee'] : 0.0;
+        $blockchainFee = isset($recipient_info_array['blockchainFee']) ? (float)$recipient_info_array['blockchainFee'] : 0.0;
+        $amount = ($sendAmount !== null) ? ($sendAmount + $platformFee + $blockchainFee) : (float)($input['amount'] ?? 0);
+        
+        $recipient_info = json_encode($recipient_info_array);
         $description = $input['description'] ?? '';
         
         // Validate user has sufficient balance

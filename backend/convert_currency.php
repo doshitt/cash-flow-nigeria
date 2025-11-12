@@ -7,6 +7,24 @@ header('Content-Type: application/json');
 try {
     $pdo = new PDO($dsn, $username, $password, $options);
     
+    // Ensure exchange_rates schema has required columns
+    try {
+        $hasFee = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND COLUMN_NAME = 'fee_percentage'")->fetchColumn();
+        if ((int)$hasFee === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD COLUMN fee_percentage DECIMAL(5,2) DEFAULT 0");
+        }
+        $hasUpdated = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND COLUMN_NAME = 'updated_at'")->fetchColumn();
+        if ((int)$hasUpdated === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+        }
+        $hasStatus = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND COLUMN_NAME = 'status'")->fetchColumn();
+        if ((int)$hasStatus === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD COLUMN status ENUM('active','inactive') DEFAULT 'active'");
+        }
+    } catch (Exception $e) {
+        // Ignore schema adjustment errors
+    }
+    
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Only POST method allowed');
     }
@@ -36,13 +54,14 @@ try {
     
     if ($autoMode && $autoMode['setting_value'] == '1') {
         // Check if rates are stale (older than 1 hour)
-        $checkStmt = $pdo->query("
-            SELECT MAX(updated_at) as last_update 
-            FROM exchange_rates
-        ");
-        $lastUpdate = $checkStmt->fetch();
+        try {
+            $checkStmt = $pdo->query("SELECT MAX(updated_at) as last_update FROM exchange_rates");
+            $lastUpdate = $checkStmt->fetch();
+        } catch (Exception $e) {
+            $lastUpdate = ['last_update' => null];
+        }
         
-        if (!$lastUpdate || strtotime($lastUpdate['last_update']) < strtotime('-1 hour')) {
+        if (!$lastUpdate || empty($lastUpdate['last_update']) || strtotime($lastUpdate['last_update']) < strtotime('-1 hour')) {
             // Fetch and update rates from API
             $apiResponse = @file_get_contents('https://api.exchangerate-api.com/v4/latest/NGN');
             if ($apiResponse) {
@@ -95,28 +114,48 @@ try {
     }
     
     if (!$exchangeRate) {
-        // Default exchange rates if not found in database
-        $rates = [
-            'NGN_USD' => 0.0013,
-            'USD_NGN' => 770,
-            'NGN_GBP' => 0.0010,
-            'GBP_NGN' => 1000,
-            'NGN_EUR' => 0.0012,
-            'EUR_NGN' => 833,
-            'USD_GBP' => 0.79,
-            'GBP_USD' => 1.27,
-            'USD_EUR' => 0.92,
-            'EUR_USD' => 1.09,
-            'GBP_EUR' => 1.16,
-            'EUR_GBP' => 0.86
-        ];
-        
-        $rateKey = $fromCurrency . '_' . $toCurrency;
-        $rate = $rates[$rateKey] ?? 1;
+        // Try live rate from API using fromCurrency as base
+        $rate = null;
         $feePercentage = ($toCurrency === 'NGN') ? 0.5 : 0;
+        $apiResp = @file_get_contents('https://api.exchangerate-api.com/v4/latest/' . urlencode($fromCurrency));
+        if ($apiResp) {
+            $data = json_decode($apiResp, true);
+            if (isset($data['rates'][$toCurrency])) {
+                $rate = (float)$data['rates'][$toCurrency];
+            }
+        }
+        // Fallback: compute via NGN base if direct base not available
+        if ($rate === null) {
+            $apiResp2 = @file_get_contents('https://api.exchangerate-api.com/v4/latest/NGN');
+            if ($apiResp2) {
+                $d2 = json_decode($apiResp2, true);
+                if (isset($d2['rates'][$fromCurrency]) && isset($d2['rates'][$toCurrency]) && (float)$d2['rates'][$fromCurrency] > 0) {
+                    $rate = (1 / (float)$d2['rates'][$fromCurrency]) * (float)$d2['rates'][$toCurrency];
+                }
+            }
+        }
+        // Final fallback to static rates
+        if ($rate === null) {
+            $defaults = [
+                'NGN_USD' => 0.0013,
+                'USD_NGN' => 770,
+                'NGN_GBP' => 0.0010,
+                'GBP_NGN' => 1000,
+                'NGN_EUR' => 0.0012,
+                'EUR_NGN' => 833,
+                'USD_GBP' => 0.79,
+                'GBP_USD' => 1.27,
+                'USD_EUR' => 0.92,
+                'EUR_USD' => 1.09,
+                'GBP_EUR' => 1.16,
+                'EUR_GBP' => 0.86
+            ];
+            $rateKey = $fromCurrency . '_' . $toCurrency;
+            $rate = $defaults[$rateKey] ?? 1;
+        }
     } else {
-        $rate = $exchangeRate['rate'];
-        $feePercentage = $exchangeRate['fee_percentage'] ?? 0;
+        $rate = (float)$exchangeRate['rate'];
+        $feePercentage = isset($exchangeRate['fee_percentage']) ? (float)$exchangeRate['fee_percentage'] : 0;
     }
     
     $convertedAmount = $amount * $rate;

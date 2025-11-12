@@ -13,8 +13,35 @@ require_once '../config/database.php';
 try {
     $pdo = new PDO($dsn, $username, $password, $options);
     
+    // Ensure exchange_rates schema exists for required columns and indexes
+    try {
+        // fee_percentage column
+        $hasFee = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND COLUMN_NAME = 'fee_percentage'")->fetchColumn();
+        if ((int)$hasFee === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD COLUMN fee_percentage DECIMAL(5,2) DEFAULT 0");
+        }
+        // updated_at column
+        $hasUpdated = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND COLUMN_NAME = 'updated_at'")->fetchColumn();
+        if ((int)$hasUpdated === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+        }
+        // status column
+        $hasStatus = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND COLUMN_NAME = 'status'")->fetchColumn();
+        if ((int)$hasStatus === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD COLUMN status ENUM('active','inactive') DEFAULT 'active'");
+        }
+        // unique index for pair
+        $hasIdx = $pdo->query("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'exchange_rates' AND INDEX_NAME = 'idx_exchange_pair'")->fetchColumn();
+        if ((int)$hasIdx === 0) {
+            $pdo->exec("ALTER TABLE exchange_rates ADD UNIQUE KEY idx_exchange_pair (from_currency, to_currency)");
+        }
+    } catch (Exception $e) {
+        // Ignore schema adjustment errors to avoid blocking sync
+    }
+    
     // Fetch live rates from exchangerate-api.com (Google uses similar rates)
-    $apiResponse = file_get_contents('https://api.exchangerate-api.com/v4/latest/NGN');
+    $apiResponse = @file_get_contents('https://api.exchangerate-api.com/v4/latest/NGN');
+
     
     if ($apiResponse === false) {
         throw new Exception('Failed to fetch exchange rates from API');
