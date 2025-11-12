@@ -42,9 +42,10 @@ export default function PaymentRequests() {
       const data = await response.json();
       
       if (data.success) {
-        // Parse recipient_info if it's a string
+        // Parse recipient_info if it's a string and ensure amount is a number
         const parsedRequests = data.data.map((req: any) => ({
           ...req,
+          amount: parseFloat(req.amount) || 0,
           recipient_info: typeof req.recipient_info === 'string' 
             ? JSON.parse(req.recipient_info) 
             : req.recipient_info

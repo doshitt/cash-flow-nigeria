@@ -127,11 +127,16 @@ export default function TV() {
       const result = await response.json();
 
       if (result.success && result.data) {
-        const customerName = result.data.customer?.customerName || result.data.customer?.firstName + ' ' + result.data.customer?.lastName || smartcardNumber;
+        // CoralPay returns customer data directly in responseData
+        const customerName = result.data.customerName || 
+                           (result.data.firstName && result.data.lastName 
+                             ? `${result.data.firstName} ${result.data.lastName}` 
+                             : result.data.firstName || result.data.lastName || smartcardNumber);
+        
         setCustomerInfo({ 
           customer: { 
             customerName: customerName,
-            ...result.data.customer 
+            ...result.data 
           }, 
           validated: true 
         });
