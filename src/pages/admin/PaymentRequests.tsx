@@ -12,6 +12,7 @@ import { getApiUrl, API_CONFIG } from "@/config/api";
 
 interface PaymentRequest {
   id: string;
+  transaction_id: string;
   user_id: string;
   first_name: string;
   last_name: string;
@@ -72,7 +73,7 @@ export default function PaymentRequests() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          request_id: selectedRequest.id,
+          request_id: selectedRequest.transaction_id,
           status: actionType === 'approve' ? 'approved' : 'rejected',
           admin_notes: adminNotes
         })

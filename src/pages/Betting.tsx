@@ -107,17 +107,18 @@ export default function Betting() {
 
       const result = await response.json();
 
-      if (result.success && result.data) {
-        // CoralPay returns customer data directly in responseData
-        const customerName = result.data.customerName || 
-                           (result.data.firstName && result.data.lastName 
-                             ? `${result.data.firstName} ${result.data.lastName}` 
-                             : result.data.firstName || result.data.lastName || customerId);
+      if (result.success && result.data && result.data.responseData) {
+        // CoralPay returns customer data in responseData.customer
+        const customerData = result.data.responseData.customer || result.data.responseData;
+        const customerName = customerData.customerName || 
+                           (customerData.firstName && customerData.lastName 
+                             ? `${customerData.firstName} ${customerData.lastName}` 
+                             : customerData.firstName || customerData.lastName || customerId);
         
         setCustomerInfo({ 
           customer: { 
             customerName: customerName,
-            ...result.data 
+            ...customerData 
           }, 
           validated: true 
         });
