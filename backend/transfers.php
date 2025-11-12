@@ -8,15 +8,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Database configuration
-$servername = "localhost";
-$username = "your_db_username";
-$password = "your_db_password";
-$dbname = "tesapay_db";
+require_once 'config/database.php';
 
 try {
-    $pdo = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO($dsn, $username, $password, $options);
     
     $method = $_SERVER['REQUEST_METHOD'];
     $input = json_decode(file_get_contents('php://input'), true);
@@ -31,9 +26,24 @@ try {
         $description = $input['description'] ?? '';
         $transaction_pin = $input['transaction_pin'];
         
-        // Validate transaction PIN (in real app, this should be hashed and verified)
-        if (strlen($transaction_pin) !== 5) {
+        // Validate transaction PIN
+        if (!$transaction_pin || strlen($transaction_pin) !== 5) {
             echo json_encode(['success' => false, 'message' => 'Invalid transaction PIN']);
+            exit;
+        }
+        
+        // Verify PIN against database
+        $stmt = $pdo->prepare("SELECT pin FROM users WHERE id = ?");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch();
+        
+        if (!$user || !$user['pin']) {
+            echo json_encode(['success' => false, 'message' => 'Transaction PIN not set']);
+            exit;
+        }
+        
+        if (!password_verify($transaction_pin, $user['pin'])) {
+            echo json_encode(['success' => false, 'message' => 'Wrong transaction PIN. Try again.']);
             exit;
         }
         

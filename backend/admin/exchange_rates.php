@@ -66,7 +66,7 @@ try {
             INSERT INTO exchange_rates (from_currency, to_currency, rate, fee_percentage, status)
             VALUES (:from, :to, :rate, :fee, 'active')
             ON DUPLICATE KEY UPDATE 
-            rate = :rate, fee_percentage = :fee, updated_at = NOW()
+            rate = VALUES(rate), fee_percentage = VALUES(fee_percentage), updated_at = NOW()
         ");
         
         $stmt->execute([

@@ -30,6 +30,8 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pin, setPin] = useState(['', '', '', '', '']);
   const [conversionResult, setConversionResult] = useState<{from: string, to: string, amount: number, converted: number} | null>(null);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [isLoadingRates, setIsLoadingRates] = useState(true);
@@ -98,7 +100,27 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
     setToCurrency(temp);
   };
 
-  const handleConvert = async () => {
+  const handlePinChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    
+    const newPin = [...pin];
+    newPin[index] = value;
+    setPin(newPin);
+
+    if (value && index < 4) {
+      const nextInput = document.getElementById(`conversion-pin-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      const prevInput = document.getElementById(`conversion-pin-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
+
+  const handleConvertClick = () => {
     if (!fromCurrency || !toCurrency || !amount || !user) {
       toast({
         title: "Error",
@@ -120,16 +142,32 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
       return;
     }
 
+    setShowPinDialog(true);
+  };
+
+  const handleConvert = async () => {
+    const pinValue = pin.join('');
+    if (pinValue.length !== 5) {
+      toast({
+        title: "Invalid PIN",
+        description: "Please enter your 5-digit transaction PIN",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
+    setShowPinDialog(false);
     try {
       const response = await fetch(getApiUrl('/convert_currency.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: user?.id,
           from_currency: fromCurrency,
           to_currency: toCurrency,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          transaction_pin: pinValue
         })
       });
 
@@ -147,6 +185,7 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
           converted: data.final_amount || data.converted_amount || conversionCalc.final
         });
         setShowSuccessDialog(true);
+        setPin(['', '', '', '', '']);
       } else {
         toast({
           title: "Conversion Failed",
@@ -201,6 +240,52 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
           <DialogFooter>
             <Button onClick={handleSuccessOk} className="w-full">
               OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Confirm Conversion</DialogTitle>
+            <DialogDescription className="text-center">
+              Enter your transaction PIN to confirm
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2 justify-center">
+              {pin.map((digit, index) => (
+                <Input
+                  key={index}
+                  id={`conversion-pin-${index}`}
+                  type="password"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handlePinChange(index, e.target.value)}
+                  onKeyDown={(e) => handlePinKeyDown(index, e)}
+                  className="w-12 h-12 text-center bg-muted"
+                />
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            <Button
+              onClick={handleConvert}
+              disabled={isLoading || pin.join('').length !== 5}
+              className="w-full"
+            >
+              {isLoading ? "Processing..." : "Confirm"}
+            </Button>
+            <Button
+              onClick={() => {
+                setShowPinDialog(false);
+                setPin(['', '', '', '', '']);
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -328,7 +413,7 @@ export const ConversionScreen = ({ onBack, selectedCurrency }: ConversionScreenP
 
         <Button 
           className="w-full" 
-          onClick={handleConvert}
+          onClick={handleConvertClick}
           disabled={!fromCurrency || !toCurrency || !amount || isLoading}
         >
           {isLoading ? "Converting..." : "Convert Now"}

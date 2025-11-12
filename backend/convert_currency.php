@@ -35,9 +35,27 @@ try {
     $fromCurrency = $input['from_currency'] ?? null;
     $toCurrency = $input['to_currency'] ?? null;
     $amount = $input['amount'] ?? null;
+    $transactionPin = $input['transaction_pin'] ?? null;
     
     if (!$userId || !$fromCurrency || !$toCurrency || !$amount) {
         throw new Exception('All fields are required');
+    }
+    
+    if (!$transactionPin || strlen($transactionPin) !== 5) {
+        throw new Exception('Invalid transaction PIN');
+    }
+    
+    // Verify transaction PIN
+    $stmt = $pdo->prepare("SELECT pin FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch();
+    
+    if (!$user || !$user['pin']) {
+        throw new Exception('Transaction PIN not set');
+    }
+    
+    if (!password_verify($transactionPin, $user['pin'])) {
+        throw new Exception('Wrong transaction PIN. Try again.');
     }
     
     if ($amount <= 0) {
@@ -82,7 +100,7 @@ try {
                     $updateStmt = $pdo->prepare("
                         INSERT INTO exchange_rates (from_currency, to_currency, rate, fee_percentage, status)
                         VALUES (:from, :to, :rate, :fee, 'active')
-                        ON DUPLICATE KEY UPDATE rate = :rate, fee_percentage = :fee, updated_at = NOW()
+                        ON DUPLICATE KEY UPDATE rate = VALUES(rate), fee_percentage = VALUES(fee_percentage), updated_at = NOW()
                     ");
                     
                     foreach ($pairs as $pair) {
