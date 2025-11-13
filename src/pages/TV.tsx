@@ -48,7 +48,13 @@ export default function TV() {
 
   useEffect(() => {
     if (selectedProvider) {
+      setSelectedPackage("");
+      setCustomerInfo(null);
       fetchTVPackages(selectedProvider);
+    } else {
+      setPackages([]);
+      setSelectedPackage("");
+      setCustomerInfo(null);
     }
   }, [selectedProvider]);
 
@@ -126,23 +132,31 @@ export default function TV() {
 
       const result = await response.json();
 
-      if (result.success && result.data && result.data.responseData) {
-        const customerData = result.data.responseData.customer || result.data.responseData;
-        const customerName = customerData.customerName || 
-                           (customerData.firstName && customerData.lastName 
-                             ? `${customerData.firstName} ${customerData.lastName}` 
-                             : customerData.firstName || customerData.lastName || smartcardNumber);
-        
-        setCustomerInfo({ 
-          customer: { 
-            customerName: customerName,
-            ...customerData 
-          }, 
-          validated: true 
+      if (result.success && result.data) {
+        const responseData = result.data;
+        const customerData = responseData.customer || responseData;
+        const customerName =
+          customerData.customerName ||
+          (customerData.firstName && customerData.lastName
+            ? `${customerData.firstName} ${customerData.lastName}`
+            : customerData.firstName ||
+              customerData.lastName ||
+              customerData.userName ||
+              customerData.accountName ||
+              customerData.meterNumber ||
+              smartcardNumber);
+
+        setCustomerInfo({
+          customer: {
+            customerName,
+            ...customerData,
+          },
+          billerName: responseData.billerName,
+          validated: true,
         });
         toast({
           title: "Smartcard Validated",
-          description: `Customer: ${customerName}`
+          description: `Customer: ${customerName}`,
         });
       } else {
         toast({
