@@ -210,7 +210,7 @@ export default function TV() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user?.id,
-          transaction_pin: pin
+          pin: pin
         })
       });
 
