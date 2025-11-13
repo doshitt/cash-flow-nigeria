@@ -103,10 +103,10 @@ export default function TV() {
   };
 
   const validateSmartcard = async () => {
-    if (!smartcardNumber || !selectedProvider) {
+    if (!smartcardNumber || !selectedProvider || !selectedPackage) {
       toast({
         title: "Validation Error",
-        description: "Please enter smartcard number and select provider",
+        description: "Please enter smartcard number, select provider and package first",
         variant: "destructive"
       });
       return;
@@ -120,14 +120,13 @@ export default function TV() {
         body: JSON.stringify({
           customerId: smartcardNumber,
           billerSlug: selectedProvider,
-          productName: selectedPackage || undefined
+          productName: selectedPackage
         })
       });
 
       const result = await response.json();
 
       if (result.success && result.data && result.data.responseData) {
-        // CoralPay returns customer data in responseData.customer
         const customerData = result.data.responseData.customer || result.data.responseData;
         const customerName = customerData.customerName || 
                            (customerData.firstName && customerData.lastName 
@@ -148,7 +147,7 @@ export default function TV() {
       } else {
         toast({
           title: "Validation Failed",
-          description: result.message || "Invalid smartcard number",
+          description: result.message || result.data?.narration || "Invalid smartcard number",
           variant: "destructive"
         });
       }
@@ -316,37 +315,11 @@ export default function TV() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Smartcard Number</label>
-            <Input
-              type="text"
-              value={smartcardNumber}
-              onChange={(e) => setSmartcardNumber(e.target.value)}
-              placeholder="Enter smartcard number"
-            />
-          </div>
-
-          <Button
-            onClick={validateSmartcard}
-            disabled={loading || !smartcardNumber || !selectedProvider}
-            variant="outline"
-            className="w-full"
-          >
-            {loading ? 'Validating...' : 'Validate Smartcard'}
-          </Button>
-
-          {customerInfo && (
-            <Card className="p-4 bg-muted">
-              <p className="text-sm"><strong>Customer:</strong> {customerInfo.customer?.customerName}</p>
-              <p className="text-sm"><strong>Status:</strong> {customerInfo.customer?.status || 'Active'}</p>
-            </Card>
-          )}
-
-          <div className="space-y-2">
             <label className="text-sm font-medium">Select Package</label>
             <Select 
               value={selectedPackage} 
               onValueChange={setSelectedPackage}
-              disabled={!customerInfo || loading}
+              disabled={!selectedProvider || loading}
             >
               <SelectTrigger>
                 <SelectValue placeholder={loading ? "Loading packages..." : "Choose subscription package"} />
@@ -360,6 +333,32 @@ export default function TV() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Smartcard Number</label>
+            <Input
+              type="text"
+              value={smartcardNumber}
+              onChange={(e) => setSmartcardNumber(e.target.value)}
+              placeholder="Enter smartcard number"
+            />
+          </div>
+
+          <Button
+            onClick={validateSmartcard}
+            disabled={loading || !smartcardNumber || !selectedProvider || !selectedPackage}
+            variant="outline"
+            className="w-full"
+          >
+            {loading ? 'Validating...' : 'Validate Smartcard'}
+          </Button>
+
+          {customerInfo && (
+            <Card className="p-4 bg-muted">
+              <p className="text-sm"><strong>Customer:</strong> {customerInfo.customer?.customerName}</p>
+              <p className="text-sm"><strong>Status:</strong> {customerInfo.customer?.status || 'Active'}</p>
+            </Card>
+          )}
 
           <Button
             onClick={handleSubscribe}

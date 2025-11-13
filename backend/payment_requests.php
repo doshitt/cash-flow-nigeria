@@ -191,22 +191,12 @@ try {
                 $request_id
             ]);
             
-            // If rejected, refund the user (including all fees)
+            // If rejected, refund the user (amount already includes all fees)
             if ($status === 'rejected') {
                 $recipient_info = json_decode($request['recipient_info'], true);
                 
-                // Calculate total refund (original amount + all fees)
+                // Refund amount - amount already includes all fees from the deduction
                 $refund_amount = $request['amount'];
-                
-                // Add platform fee
-                if (isset($recipient_info['platformFee'])) {
-                    $refund_amount += $recipient_info['platformFee'];
-                }
-                
-                // Add blockchain fee if crypto
-                if (isset($recipient_info['blockchainFee'])) {
-                    $refund_amount += $recipient_info['blockchainFee'];
-                }
                 
                 // Refund to user's wallet
                 $stmt = $pdo->prepare("

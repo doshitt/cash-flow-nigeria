@@ -27,11 +27,14 @@ export default function Betting() {
   const { user } = useAuth();
   const [providers, setProviders] = useState<BettingProvider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState("");
+  const [selectedPackage, setSelectedPackage] = useState("");
+  const [packages, setPackages] = useState<any[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [amount, setAmount] = useState("");
   const [customerInfo, setCustomerInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [pin, setPin] = useState("");
@@ -40,6 +43,14 @@ export default function Betting() {
   useEffect(() => {
     fetchProviders();
   }, []);
+
+  useEffect(() => {
+    if (selectedProvider) {
+      fetchPackages(selectedProvider);
+      setSelectedPackage("");
+      setCustomerInfo(null);
+    }
+  }, [selectedProvider]);
 
   const fetchProviders = async () => {
     try {
@@ -68,11 +79,32 @@ export default function Betting() {
     }
   };
 
+  const fetchPackages = async (providerSlug: string) => {
+    setIsLoadingPackages(true);
+    try {
+      const response = await fetch(
+        `${getApiUrl('')}/coralpay/betting.php?action=packages&providerSlug=${providerSlug}`
+      );
+      const result = await response.json();
+      
+      if (result.success && result.data?.responseData) {
+        setPackages(result.data.responseData);
+      } else {
+        setPackages([]);
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+      setPackages([]);
+    } finally {
+      setIsLoadingPackages(false);
+    }
+  };
+
   const validateCustomer = async () => {
-    if (!selectedProvider || !customerId) {
+    if (!selectedProvider || !customerId || !selectedPackage) {
       toast({
         title: "Incomplete Information",
-        description: "Please select provider and enter customer ID",
+        description: "Please select provider, package and enter customer ID",
         variant: "destructive"
       });
       return;
@@ -101,14 +133,14 @@ export default function Betting() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId: customerId,
-          billerSlug: selectedProvider
+          billerSlug: selectedProvider,
+          productName: selectedPackage
         })
       });
 
       const result = await response.json();
 
       if (result.success && result.data && result.data.responseData) {
-        // CoralPay returns customer data in responseData.customer
         const customerData = result.data.responseData.customer || result.data.responseData;
         const customerName = customerData.customerName || 
                            (customerData.firstName && customerData.lastName 
@@ -129,7 +161,7 @@ export default function Betting() {
       } else {
         toast({
           title: "Validation Failed",
-          description: result.message || "Invalid customer ID",
+          description: result.message || result.data?.narration || "Invalid customer ID",
           variant: "destructive"
         });
       }
@@ -348,12 +380,39 @@ export default function Betting() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="package">Select Package</Label>
+                {isLoadingPackages ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : packages.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground border rounded-md bg-muted">
+                    {selectedProvider ? "No packages available for this provider" : "Select a provider first"}
+                  </div>
+                ) : (
+                  <Select value={selectedPackage} onValueChange={setSelectedPackage} disabled={!selectedProvider}>
+                    <SelectTrigger id="package" className="bg-background">
+                      <SelectValue placeholder="Select betting package" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 bg-background border shadow-lg">
+                      {packages.map((pkg) => (
+                        <SelectItem key={pkg.slug} value={pkg.slug}>
+                          {pkg.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="customerId">Customer ID / Username</Label>
                 <Input
                   id="customerId"
                   placeholder="Enter your betting account ID"
                   value={customerId}
                   onChange={(e) => setCustomerId(e.target.value)}
+                  disabled={!selectedPackage}
                 />
               </div>
 
@@ -361,7 +420,7 @@ export default function Betting() {
                 variant="outline"
                 className="w-full"
                 onClick={validateCustomer}
-                disabled={isValidating || !selectedProvider || !customerId}
+                disabled={isValidating || !selectedProvider || !selectedPackage || !customerId}
               >
                 {isValidating ? (
                   <>
